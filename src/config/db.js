@@ -1,0 +1,21 @@
+import mongoose from 'mongoose';
+
+export const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected');
+  } catch (err) {
+    console.error('❌ MongoDB error', err);
+    process.exit(1);
+  }
+};
+
+export const disconnectDB = async () => {
+  try {
+    await mongoose.disconnect();
+    console.log('✅ MongoDB disconnected');
+  } catch (err) {
+    console.error('❌ MongoDB error', err);
+    process.exit(1);
+  }
+};
