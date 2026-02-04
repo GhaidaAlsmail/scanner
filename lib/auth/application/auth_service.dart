@@ -1,70 +1,99 @@
 // ignore_for_file: avoid_print
-//auth_service
-import 'package:firebase_auth/firebase_auth.dart';
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:news_watch/auth/domain/app_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_service.g.dart';
 
 @riverpod
-AuthService authService(Ref ref) => AuthService();
+AuthService authService(Ref ref) {
+  return AuthService(baseUrl: 'http://YOUR_SERVER_URL/api');
+}
 
 class AuthService {
-  AuthService() {
-    _firebaseAuth = FirebaseAuth.instance;
-  }
+  final String baseUrl;
+  AuthService({required this.baseUrl});
 
-  late FirebaseAuth _firebaseAuth;
-  User? get currenUser => _firebaseAuth.currentUser;
-
-  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
-
-  Future<UserCredential?> createUserWithEmailAndPassword({
+  /// LOGIN
+  Future<AppUser> login({
     required String email,
     required String password,
   }) async {
-    try {
-      UserCredential userCredential = await _firebaseAuth
-          .createUserWithEmailAndPassword(email: email, password: password);
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
 
-      // Send email verification
-      await userCredential.user?.sendEmailVerification();
-      return userCredential;
-    } catch (e) {
-      rethrow;
+    if (res.statusCode != 200) {
+      throw Exception('Login failed');
     }
+
+    final data = jsonDecode(res.body);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', data['token']);
+
+    return AppUser.fromJson(data['user']);
   }
 
-  Future<UserCredential?> signInWIthEmailANdPass({
-    required String email,
+  /// REGISTER
+  Future<void> register({
+    required AppUser user,
     required String password,
   }) async {
-    try {
-      UserCredential userCredential = await _firebaseAuth
-          .signInWithEmailAndPassword(email: email, password: password);
-      return userCredential;
-    } catch (e) {
-      print("Error during sign-in: $e");
-      return null;
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({...user.toJson(), 'password': password}),
+    );
+
+    if (res.statusCode != 201) {
+      throw Exception('Register failed');
     }
   }
 
+  /// GET CURRENT USER (/me)
+  Future<AppUser> getMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) throw Exception('No token');
+
+    final res = await http.get(
+      Uri.parse('$baseUrl/users/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Unauthorized');
+    }
+
+    return AppUser.fromJson(jsonDecode(res.body));
+  }
+
+  /// LOGOUT
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+  }
+
+  /// RESET PASSWORD (backend endpoint)
   Future<void> resetPassword({required String email}) async {
-    try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      rethrow;
-    }
-  }
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
 
-  Future<void> signOut() async {
-    await _firebaseAuth.signOut();
-  }
-
-  Future<void> resendVerificationEmail() async {
-    final user = _firebaseAuth.currentUser;
-    if (user != null && !user.emailVerified) {
-      await user.reload();
-      await user.sendEmailVerification();
+    if (res.statusCode != 200) {
+      throw Exception('Reset password failed');
     }
   }
 }

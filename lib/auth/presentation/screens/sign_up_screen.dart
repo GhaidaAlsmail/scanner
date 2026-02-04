@@ -11,7 +11,7 @@ import '../../../core/presentation/widgets/reactive_password_input_widget.dart'
     show ReactivePasswordInputWidget;
 import '../../../core/presentation/widgets/reactive_text_input_widget.dart';
 import '../../../translation.dart';
-import '../../application/auth_notifier_provider.dart';
+// import '../../application/auth_notifier_provider.dart';
 import '../../application/sign_up_form_provider.dart';
 import '../../domain/app_user.dart';
 
@@ -63,19 +63,19 @@ class SignUpScreen extends ConsumerWidget {
                                 var email = form.control("email").value;
                                 var password = form.control("password").value;
 
-                                ref
-                                    .read(authNotifierProvider.notifier)
-                                    .createUserWithEmailAndPassword(
-                                      email,
-                                      password,
-                                      AppUser(name: userName, email: email),
-                                    )
-                                    .then((value) {
-                                      if (value != null) {
-                                        formGroup.reset();
-                                        context.pop();
-                                      }
-                                    });
+                                // ref
+                                //     .read(authNotifierProvider.notifier)
+                                //     .createUserWithEmailAndPassword(
+                                //       email,
+                                //       password,
+                                //       AppUser(name: userName, email: email),
+                                //     )
+                                //     .then((value) {
+                                //       if (value != null) {
+                                //         formGroup.reset();
+                                //         context.pop();
+                                //       }
+                                //     });
                               },
                       );
                     },

@@ -48,4 +48,4 @@ final class AppUserServiceProvider
   }
 }
 
-String _$appUserServiceHash() => r'11a88d3da09b530824f395be5907f2d27a0f9ce1';
+String _$appUserServiceHash() => r'4980bb7a7f7df64160acbe3885dd36c7cca30a84';

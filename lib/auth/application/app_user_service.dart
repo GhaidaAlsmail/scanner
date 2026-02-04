@@ -1,42 +1,63 @@
-import 'package:bot_toast/bot_toast.dart';
-import 'package:reactive_forms/reactive_forms.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../data/firestore_app_user_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../domain/app_user.dart';
 
 part 'app_user_service.g.dart';
 
 @riverpod
-AppUserService appUserService(Ref ref) => AppUserService(
-  firestoreAppUserRepository: ref.read(firestoreAppUserRepositoryProvider),
-);
+AppUserService appUserService(Ref ref) {
+  return AppUserService(baseUrl: 'http://localhost:3060/api');
+}
 
 class AppUserService {
-  final FirestoreAppUserRepository firestoreAppUserRepository;
-  AppUserService({required this.firestoreAppUserRepository});
+  final String baseUrl;
+  AppUserService({required this.baseUrl});
 
-  Future<AppUser> createAccount(AppUser user) {
-    return firestoreAppUserRepository.createUser(appUser: user);
-  }
+  /// 👤 المستخدم الحالي
+  Future<AppUser> getMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-  Future<AppUser?> getAccountByEmail(String email) {
-    return firestoreAppUserRepository.getUserByEmail(email: email);
-  }
-
-  Future<void> updateUser({required FormGroup form}) async {
-    BotToast.showLoading();
-    var id = form.control("id").value;
-    var userName = form.control("userName").value;
-    var birthDate = form.control("date").value;
-    var oldUser = await firestoreAppUserRepository.readUser(id: id); // Data
-    if (oldUser == null) {
-      BotToast.closeAllLoading();
-      BotToast.showText(text: "عذراً,يوجد خطأ ما!!");
-    } else {
-      oldUser = oldUser.copyWith(name: userName, birthDate: birthDate);
-      await firestoreAppUserRepository.updateUser(appUser: oldUser); // Data
-      BotToast.closeAllLoading();
-      BotToast.showText(text: "تم التحديث بنجاح");
+    if (token == null) {
+      throw Exception('No token');
     }
+
+    final res = await http.get(
+      Uri.parse('$baseUrl/users/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Unauthorized');
+    }
+
+    return AppUser.fromJson(jsonDecode(res.body));
+  }
+
+  ///  تحديث المستخدم
+  Future<AppUser> updateUser(AppUser user) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final res = await http.put(
+      Uri.parse('$baseUrl/users/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(user.toJson()),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Update failed');
+    }
+
+    return AppUser.fromJson(jsonDecode(res.body));
   }
 }

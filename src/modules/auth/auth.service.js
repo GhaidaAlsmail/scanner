@@ -1,34 +1,41 @@
-import { sign } from 'jsonwebtoken';
-import { hash as _hash, compare } from 'bcrypt';
-import { create, findByEmail } from '../users/user.repository';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import User from '../users/user.model.js';
 
-export async function register(email, password, userData) {
-  const hash = await _hash(password, 10);
+export const login = async (email, password) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
 
-  const user = {
-    ...userData,
-    email,
-    passwordHash: hash,
-  };
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
 
-  await create(user);
-
-  // لاحقًا email verification
-  return user;
-}
-
-export async function login(email, password) {
-  const user = await findByEmail(email);
-  if (!user) throw new Error('Invalid credentials');
-
-  const ok = await compare(password, user.passwordHash);
-  if (!ok) throw new Error('Invalid credentials');
-
-  const token = sign(
-    { userId: user.id, isAdmin: user.isAdmin },
+  const token = jwt.sign(
+    {
+      userId: user._id,
+      isAdmin: user.isAdmin,
+    },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 
-  return { token, user };
-}
+  return {
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      stars: user.stars,
+    },
+  };
+};
+
+export const register = async (userData, password) => {
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = await User.create({ ...userData, passwordHash }); 
+  return user;
+};

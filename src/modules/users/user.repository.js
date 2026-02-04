@@ -1,18 +1,18 @@
-import db from '../../config/database';
+import User from './user.model.js';
 
-export async function create(user) {
-  await db('users').insert(user);
-  return user;
-}
+export const createUser = (data) => User.create(data);
 
-export async function findByEmail(email) {
-  return db('users').where({ email }).first();
-}
+export const findByEmail = (email) =>
+  User.findOne({ email }).lean();
 
-export async function findById(id) {
-  return db('users').where({ id }).first();
-}
+export const findById = (id) =>
+  User.findById(id).lean();
 
-export async function update(id, data) {
-  return db('users').where({ id }).update(data);
-}
+export const updateUser = (id, data) =>
+  User.findByIdAndUpdate(id, data, { new: true });
+
+export const getAllUsers = () =>
+  User.find().lean();
+
+export const deleteUser = (id) =>
+  User.findByIdAndDelete(id);

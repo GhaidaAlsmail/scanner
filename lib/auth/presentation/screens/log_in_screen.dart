@@ -8,6 +8,7 @@ import 'package:reactive_forms/reactive_forms.dart';
 import '../../../core/presentation/widgets/reactive_password_input_widget.dart';
 import '../../../core/presentation/widgets/reactive_text_input_widget.dart';
 import '../../../core/presentation/widgets/text_button_widget.dart';
+// import '../../application/auth_notifier_provider.dart';
 import '../../application/auth_notifier_provider.dart';
 import '../../application/log_in_form_provider.dart';
 
@@ -54,9 +55,9 @@ class LogInScreen extends ConsumerWidget {
                           onTap: control.invalid
                               ? null
                               : () {
-                                  ref
-                                      .read(authNotifierProvider.notifier)
-                                      .resetPassword(control.value as String);
+                                  // ref
+                                  //     .read(authNotifierProvider.notifier)
+                                  //     .resetPassword(control.value as String);
                                 },
                         );
                       },
@@ -77,10 +78,7 @@ class LogInScreen extends ConsumerWidget {
 
                                 ref
                                     .read(authNotifierProvider.notifier)
-                                    .signInWithEmailAndPassword(
-                                      email,
-                                      password,
-                                    );
+                                    .login(email, password);
                               },
                       );
                     },
@@ -89,9 +87,9 @@ class LogInScreen extends ConsumerWidget {
                   ButtonWidget(
                     text: "Resend Email Verification".i18n,
                     onTap: () {
-                      ref
-                          .read(authNotifierProvider.notifier)
-                          .resendEmailVerification();
+                      // ref
+                      //     .read(authNotifierProvider.notifier)
+                      //     .resendEmailVerification();
                     },
                   ),
                   Gap(40),

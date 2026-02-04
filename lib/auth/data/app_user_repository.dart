@@ -1,11 +1,11 @@
 import '../domain/app_user.dart';
 
 abstract class AppUserRepository {
-  Future<void> createUser({required AppUser appUser});
-  Future<AppUser?> readUser({required String id});
-  Future<void> updateUser({required AppUser appUser});
-  Future<void> deleteUser({required String id});
-  Future<AppUser?> getUserByEmail({required String email});
-  Stream<AppUser?> streamUserById({required String id});
+  Future<AppUser> createUser(AppUser appUser);
+  Future<AppUser?> getUserById(String id);
+  Future<AppUser?> getUserByEmail(String email);
+  Future<AppUser> updateUser(AppUser appUser);
+  Future<void> deleteUser(String id);
   Future<List<AppUser>> getAllUsers();
+  Future<AppUser> getMe();
 }
