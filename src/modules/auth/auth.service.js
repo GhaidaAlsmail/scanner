@@ -1,11 +1,33 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../users/user.model.js';
+
+import crypto from 'crypto';
+import { sendVerificationEmail } from '../utils/sendVerificationEmail.js';
+
+export const register = async (userData, password) => {
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
+  const user = await user.create({
+    ...userData,
+    passwordHash,
+    isVerified: false,
+    emailVerificationToken: verificationToken,
+    emailVerificationExpires: Date.now() + 10 * 60 * 1000, // 10 دقائق
+  });
+
+  await sendVerificationEmail(user.email, verificationToken);
+
+  return user;
+};
 
 export const login = async (email, password) => {
-  const user = await User.findOne({ email });
+  const user = await user.findOne({ email });
   if (!user) {
     throw new Error('INVALID_CREDENTIALS');
+  }
+
+  if (!user.isVerified) {
+    throw new Error('EMAIL_NOT_VERIFIED');
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
@@ -32,10 +54,4 @@ export const login = async (email, password) => {
       stars: user.stars,
     },
   };
-};
-
-export const register = async (userData, password) => {
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({ ...userData, passwordHash }); 
-  return user;
 };

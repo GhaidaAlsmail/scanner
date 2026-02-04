@@ -8,8 +8,8 @@ import 'package:reactive_forms/reactive_forms.dart';
 import '../../../core/presentation/widgets/reactive_password_input_widget.dart';
 import '../../../core/presentation/widgets/reactive_text_input_widget.dart';
 import '../../../core/presentation/widgets/text_button_widget.dart';
-// import '../../application/auth_notifier_provider.dart';
 import '../../application/auth_notifier_provider.dart';
+import '../../application/auth_service.dart' show authServiceProvider;
 import '../../application/log_in_form_provider.dart';
 
 class LogInScreen extends ConsumerWidget {
@@ -86,10 +86,12 @@ class LogInScreen extends ConsumerWidget {
                   Gap(20),
                   ButtonWidget(
                     text: "Resend Email Verification".i18n,
-                    onTap: () {
-                      // ref
-                      //     .read(authNotifierProvider.notifier)
-                      //     .resendEmailVerification();
+                    onTap: () async {
+                      await ref
+                          .read(authServiceProvider)
+                          .resendVerificationEmail(
+                            email: ValidationMessage.email,
+                          );
                     },
                   ),
                   Gap(40),

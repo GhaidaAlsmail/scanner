@@ -52,7 +52,7 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   ///  REGISTER
-  Future<void> register(AppUser user, String password) async {
+  Future<void> register(AppUser user, String password, AppUser appUser) async {
     try {
       BotToast.showLoading();
       await authService.register(user: user, password: password);
@@ -92,6 +92,8 @@ class AuthNotifier extends StateNotifier<AppUser?> {
       BotToast.closeAllLoading();
     }
   }
+
+  /// Resend vervication email (endpoint backend)
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AppUser?>((

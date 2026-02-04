@@ -55,4 +55,4 @@ final class ApiAppUserRepositoryProvider
 }
 
 String _$apiAppUserRepositoryHash() =>
-    r'4500077a539d981cee5ff1083900e5e89148516a';
+    r'43866ba0a7ae449b14c105bec7310c777e8b470e';

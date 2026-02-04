@@ -96,4 +96,18 @@ class AuthService {
       throw Exception('Reset password failed');
     }
   }
+
+  /// RESEND EMAIL VERIFICATION (backend endpoint)
+  Future<void> resendVerificationEmail({required String email}) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/resend-verification'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body);
+      throw Exception(data['message'] ?? 'Resend verification failed');
+    }
+  }
 }

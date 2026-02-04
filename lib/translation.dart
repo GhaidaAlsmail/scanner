@@ -1,3 +1,5 @@
+// ignore_for_file: strict_top_level_inference
+
 import 'package:i18n_extension/i18n_extension.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';

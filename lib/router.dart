@@ -1,14 +1,10 @@
 import 'package:bot_toast/bot_toast.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// import 'auth/application/auth_notifier_provider.dart' show authNotifierProvider;
 import 'auth/presentation/screens/log_in_screen.dart';
 import 'auth/presentation/screens/sign_up_screen.dart';
 import 'core/presentation/screens/splash_screen.dart';
 import 'home_management/presentation/screens/add_photos_screen.dart';
-import 'home_management/presentation/screens/show_all_images.dart';
 
 // final router = Provider(
 //   (ref) => GoRouter(
