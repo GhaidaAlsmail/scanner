@@ -10,7 +10,7 @@ part 'api_app_user_repository.g.dart';
 
 @riverpod
 ApiAppUserRepository apiAppUserRepository(Ref ref) {
-  return ApiAppUserRepository(baseUrl: 'http://localhost:3060/api');
+  return ApiAppUserRepository(baseUrl: 'http://localhost:3006/api');
 }
 
 class ApiAppUserRepository implements AppUserRepository {

@@ -9,7 +9,8 @@ part 'app_user_service.g.dart';
 
 @riverpod
 AppUserService appUserService(Ref ref) {
-  return AppUserService(baseUrl: 'http://localhost:3060/api');
+  return AppUserService(baseUrl: 'http://10.72.210.150:3006/api');
+  // return AppUserService(baseUrl: 'http://10.0.2.2:3006/api');
 }
 
 class AppUserService {

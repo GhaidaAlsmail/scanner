@@ -10,7 +10,7 @@ part 'auth_service.g.dart';
 
 @riverpod
 AuthService authService(Ref ref) {
-  return AuthService(baseUrl: 'http://YOUR_SERVER_URL/api');
+  return AuthService(baseUrl: 'http://localhost:3006/api');
 }
 
 class AuthService {
