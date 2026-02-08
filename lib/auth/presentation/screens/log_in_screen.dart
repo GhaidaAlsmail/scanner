@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -94,11 +95,18 @@ class LogInScreen extends ConsumerWidget {
                   ButtonWidget(
                     text: "Resend Email Verification".i18n,
                     onTap: () async {
-                      await ref
-                          .read(authServiceProvider)
-                          .resendVerificationEmail(
-                            email: ValidationMessage.email,
-                          );
+                      var email = form
+                          .control("email")
+                          .value; //  سحب الإيميل المكتوب في الحقل
+                      if (email != null && email.isNotEmpty) {
+                        await ref
+                            .read(authServiceProvider)
+                            .resendVerificationEmail(email: email);
+                      } else {
+                        BotToast.showText(
+                          text: "يرجى كتابة البريد الإلكتروني أولاً",
+                        );
+                      }
                     },
                   ),
                   Gap(40),
