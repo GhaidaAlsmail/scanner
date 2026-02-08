@@ -17,7 +17,7 @@ class AppUserService {
   final String baseUrl;
   AppUserService({required this.baseUrl});
 
-  /// 👤 المستخدم الحالي
+  ///  المستخدم الحالي
   Future<AppUser> getMe() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');

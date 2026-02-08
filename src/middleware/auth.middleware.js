@@ -21,28 +21,33 @@
 //   }
 // };
 
+
 import jwt from 'jsonwebtoken';
+import User from '../modules/users/user.model.js'; // تأكد من استيراد الموديل
 
 export const protect = async (req, res, next) => {
   let token;
 
-  // التأكد من وجود التوكن في الـ Headers
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-
-      // التحقق من صحة التوكن باستخدام المفتاح السري الموجود في .env
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // إضافة معرف المستخدم للطلب ليستخدمه الكنترولر لاحقاً
-      req.userId = decoded.userId;
+      // بدلاً من تخزين الـ ID فقط، سنجلب المستخدم كاملاً من الداتابيز
+      // نستخدم .select('-passwordHash') لكي لا نرسل الباسورد المشفر للكنترولر
+      req.user = await User.findById(decoded.id || decoded.userId).select('-passwordHash');
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'المستخدم غير موجود' });
+      }
+
       next();
     } catch (error) {
-      res.status(401).json({ message: 'غير مصرح لك، التوكن غير صالح' });
+      return res.status(401).json({ message: 'غير مصرح لك، التوكن غير صالح' });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: 'غير مصرح لك، لا يوجد توكن' });
+    return res.status(401).json({ message: 'غير مصرح لك، لا يوجد توكن' });
   }
 };

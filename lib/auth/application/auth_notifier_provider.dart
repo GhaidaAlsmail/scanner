@@ -94,6 +94,17 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   /// Resend vervication email (endpoint backend)
+  Future<void> resendVerification(String email) async {
+    try {
+      BotToast.showLoading();
+      await authService.resendVerificationEmail(email: email);
+      BotToast.showText(text: "تم إعادة إرسال رمز التفعيل بنجاح");
+    } catch (e) {
+      BotToast.showText(text: e.toString());
+    } finally {
+      BotToast.closeAllLoading();
+    }
+  }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AppUser?>((

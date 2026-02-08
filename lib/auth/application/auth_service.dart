@@ -10,20 +10,38 @@ part 'auth_service.g.dart';
 
 @riverpod
 AuthService authService(Ref ref) {
-  return AuthService(baseUrl: 'http://localhost:3006/api');
+  return AuthService(baseUrl: 'http://10.0.2.2:3006/api');
 }
 
 class AuthService {
   final String baseUrl;
   AuthService({required this.baseUrl});
 
+  /// get url
+  Future<String> getBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    // إذا لم يجد IP مخزن، يستخدم الافتراضي (مثلاً IP الجهاز حالياً)
+    String savedIp = prefs.getString('server_ip') ?? '10.0.2.2';
+    return "http://$savedIp:3006/api/auth";
+  }
+
+  /// LOGIN
   /// LOGIN
   Future<AppUser> login({
     required String email,
     required String password,
   }) async {
+    // 1. جلب الـ IP المخزن من SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    // إذا لم يجد IP مخزن، سيستخدم IP افتراضي (مثلاً 10.0.2.2 للمحاكي)
+    final String savedIp = prefs.getString('server_ip') ?? '10.0.2.2';
+
+    // 2. بناء الرابط الكامل ديناميكياً
+    final String dynamicUrl = 'http://$savedIp:3006/api';
+
+    // 3. إرسال الطلب باستخدام الرابط الجديد
     final res = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
+      Uri.parse('$dynamicUrl/auth/login'), // لاحظي استخدام dynamicUrl هنا
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -34,10 +52,40 @@ class AuthService {
 
     final data = jsonDecode(res.body);
 
-    final prefs = await SharedPreferences.getInstance();
+    // حفظ التوكن
     await prefs.setString('token', data['token']);
 
     return AppUser.fromJson(data['user']);
+  }
+
+  /// =================هي شغالة================
+  // Future<AppUser> login({
+  //   required String email,
+  //   required String password,
+  // }) async {
+
+  //   final res = await http.post(
+  //     Uri.parse('$baseUrl/auth/login'),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'email': email, 'password': password}),
+  //   );
+
+  //   if (res.statusCode != 200) {
+  //     throw Exception('Login failed');
+  //   }
+
+  //   final data = jsonDecode(res.body);
+
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setString('token', data['token']);
+
+  //   return AppUser.fromJson(data['user']);
+  // }
+
+  ///update ip server
+  Future<void> updateServerIp(String newIp) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_ip', newIp);
   }
 
   /// REGISTER
@@ -64,7 +112,7 @@ class AuthService {
     if (token == null) throw Exception('No token');
 
     final res = await http.get(
-      Uri.parse('$baseUrl/users/me'),
+      Uri.parse('$baseUrl/auth/me'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -74,8 +122,9 @@ class AuthService {
     if (res.statusCode != 200) {
       throw Exception('Unauthorized');
     }
-
-    return AppUser.fromJson(jsonDecode(res.body));
+    final responseData = jsonDecode(res.body);
+    return AppUser.fromJson(responseData['data']['user']);
+    // return AppUser.fromJson(jsonDecode(res.body));
   }
 
   /// LOGOUT

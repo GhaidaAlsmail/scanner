@@ -15,9 +15,8 @@
 // });
 
 // export default router;
-
 import { Router } from 'express';
-import { protect } from '../../middlewares/auth.middleware.js';
+import { protect } from '../../middleware/auth.middleware.js';
 import User from './user.model.js';
 
 const router = Router();

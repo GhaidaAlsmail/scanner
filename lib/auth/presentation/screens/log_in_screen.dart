@@ -11,6 +11,7 @@ import '../../../core/presentation/widgets/text_button_widget.dart';
 import '../../application/auth_notifier_provider.dart';
 import '../../application/auth_service.dart' show authServiceProvider;
 import '../../application/log_in_form_provider.dart';
+import '../components/enter_ip.dart';
 
 class LogInScreen extends ConsumerWidget {
   const LogInScreen({super.key});
@@ -30,7 +31,13 @@ class LogInScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Gap(70),
-                  Image.asset('assets/images/splash.png', width: 250),
+                  GestureDetector(
+                    onLongPress: () {
+                      // سيظهر الـ Dialog فقط عند الضغط مطولاً على هذا العنصر
+                      showIpSettingsDialog(context);
+                    },
+                    child: Image.asset('assets/images/splash.png', width: 250),
+                  ),
                   const Gap(40),
                   ReactiveTextInputWidget(
                     hint: 'Email',

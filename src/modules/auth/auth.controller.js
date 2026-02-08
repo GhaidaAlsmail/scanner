@@ -1,8 +1,8 @@
 
 import * as authService from './auth.service.js';
 import crypto from 'crypto';
-import User from '../models/user.model.js';
-import { sendVerificationEmail } from '../utils/sendVerificationEmail.js';
+import User from '../users/user.model.js';
+import { sendVerificationEmail } from '../../utils/sendVerificationEmail.js';
 
 export const register = async (req, res) => {
   const { password, ...userData } = req.body;
@@ -71,7 +71,9 @@ export const resendVerificationEmail = async (req, res, next) => {
 
 export const verifyEmail = async (req, res, next) => {
   try {
-    const { token } = req.body; // أو req.query.token إذا جاي من رابط
+    // استخراج التوكن من الرابط
+    const { token } = req.params; 
+
     const user = await User.findOne({
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: Date.now() },
@@ -81,10 +83,14 @@ export const verifyEmail = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
+    // تحديث حالة المستخدم
     user.isVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
+
+    // تصحيح المتغير هنا من verificationToken إلى token
+    console.log("Verified successfully with token: ", token);
 
     res.status(200).json({ message: 'Email verified successfully' });
   } catch (error) {
@@ -92,45 +98,21 @@ export const verifyEmail = async (req, res, next) => {
   }
 };
 
-// ///////////////////////////////////////////////تجريب////////////////////////////////////////////////////
+// في ملف src/modules/auth/auth.controller.js
 
-
-
-//////////////////////////////////////////////لاتحذفي//////////////////////////////////////////////
-// import * as authService from './auth.service.js';
-// import crypto from 'crypto';
-// import User from '../models/user.model.js';
-// import { sendVerificationEmail } from '../utils/sendVerificationEmail.js';
-
-// // ===== REGISTER =====
-// export const register = async (req, res, next) => {
-//   try {
-//     const { password, ...userData } = req.body;
-//     const user = await authService.register(userData, password);
-//     res.status(201).json(user);
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-// // ===== LOGIN =====
-// export const login = async (req, res, next) => {
-//   try {
-//     const { email, password } = req.body;
-//     const result = await authService.login(email, password);
-//     res.json(result);
-//   } catch (e) {
-//     if (e.message === 'EMAIL_NOT_VERIFIED') {
-//       return res.status(403).json({
-//         message: 'يرجى تأكيد البريد الإلكتروني أولًا',
-//       });
-//     }
-//     res.status(401).json({
-//       message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-//     });
-//   }
-// };
-
+export const getMe = async (req, res) => {
+  try {
+    // req.user تم وضعه بواسطة الـ middleware
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: req.user // هنا ستظهر البيانات كاملة
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // // ===== FORGOT PASSWORD =====
 // export const forgotPassword = async (req, res, next) => {
 //   try {
@@ -182,26 +164,3 @@ export const verifyEmail = async (req, res, next) => {
 //   }
 // };
 
-// // ===== VERIFY EMAIL =====
-// export const verifyEmail = async (req, res, next) => {
-//   try {
-//     const { token } = req.body; // أو req.query.token من الرابط
-//     const user = await User.findOne({
-//       emailVerificationToken: token,
-//       emailVerificationExpires: { $gt: Date.now() },
-//     });
-
-//     if (!user) {
-//       return res.status(400).json({ message: 'Invalid or expired token' });
-//     }
-
-//     user.isVerified = true;
-//     user.emailVerificationToken = undefined;
-//     user.emailVerificationExpires = undefined;
-//     await user.save();
-
-//     res.status(200).json({ message: 'Email verified successfully' });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
