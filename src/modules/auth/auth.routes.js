@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { login, register, forgotPassword, resendVerificationEmail, verifyEmail, getMe } from './auth.controller.js';
+import { login, register, forgotPassword, resendVerificationEmail, verifyEmail, getMe,resetPassword } from './auth.controller.js';
+// import { forgotPassword, resetPassword } from './auth.controller.js';
 import { protect } from '../../middleware/auth.middleware.js';
 
 const router = Router();
@@ -10,6 +11,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/resend-verification', resendVerificationEmail);
 router.get('/verify-email/:token', verifyEmail);
 router.get('/me', protect, getMe);
+router.patch('/reset-password/:token', resetPassword);
 
 export default router;
 

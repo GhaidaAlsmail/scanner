@@ -7,8 +7,10 @@ import 'package:news_watch/core/presentation/widgets/reactive_text_input_widget.
 import 'package:news_watch/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 // import '../../../auth/application/auth_notifier_provider.dart';
+import '../../../auth/application/auth_notifier_provider.dart';
 import '../../../core/presentation/widgets/button_widget.dart';
 import '../../application/add_photos_provider.dart';
+import '../../application/photos_service.dart';
 
 class AddPhotosScreen extends ConsumerWidget {
   const AddPhotosScreen({super.key});
@@ -36,9 +38,9 @@ class AddPhotosScreen extends ConsumerWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(15),
                     onTap: () async {
-                      // ref
-                      //     .read(photosServicesProvider)
-                      //     .showImagePicker(context, ref);
+                      ref
+                          .read(photosServicesProvider)
+                          .showImagePicker(context, ref);
                     },
                     child: image == null
                         ? Container(
@@ -138,12 +140,7 @@ class AddPhotosScreen extends ConsumerWidget {
                     ),
 
                     Gap(70),
-                    ButtonWidget(
-                      text: "sign out ".i18n,
-                      onTap: () {
-                        // ref.read(authNotifierProvider.notifier).logOut();
-                      },
-                    ),
+                    ButtonWidget(text: "sign out ".i18n, onTap: () {}),
                   ],
                 ),
                 Gap(35),

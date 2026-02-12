@@ -1,11 +1,13 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:news_watch/auth/presentation/screens/reset_passwords.dart';
 import 'auth/application/auth_notifier_provider.dart' show authNotifierProvider;
 import 'auth/presentation/screens/log_in_screen.dart';
 import 'auth/presentation/screens/sign_up_screen.dart';
 import 'core/presentation/screens/splash_screen.dart';
 import 'home_management/presentation/screens/add_photos_screen.dart';
+import 'home_management/presentation/screens/show_all_images.dart';
 
 //===========================معلق================================
 // final router = Provider(
@@ -105,9 +107,13 @@ final router = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       // منطق التوجيه
       final bool loggedIn = authState != null;
+      // final bool isLoggingIn =
+      //     state.matchedLocation == '/loggin' ||
+      //     state.matchedLocation == '/signup';
       final bool isLoggingIn =
           state.matchedLocation == '/loggin' ||
-          state.matchedLocation == '/signup';
+          state.matchedLocation == '/signup' ||
+          state.matchedLocation.startsWith('/reset-password');
       final bool isSplash = state.matchedLocation == '/splash';
 
       if (authState == null && isSplash) return null;
@@ -144,13 +150,22 @@ final router = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // GoRoute(
-      //   path: "/all-photos",
-      //   name: "all-photos",
-      //   builder: (context, state) {
-      //     return AllPhotosScreen();
-      //   },
-      // ),
+      GoRoute(
+        path: "/all-photos",
+        name: "all-photos",
+        builder: (context, state) {
+          return AllPhotosScreen();
+        },
+      ),
+      GoRoute(
+        path: '/reset-password/:token', // النقطتان تعنيان أن التوكن متغير
+        name: 'reset-password',
+        builder: (context, state) {
+          // استخراج التوكن من الرابط
+          final token = state.pathParameters['token']!;
+          return ResetPasswordScreen(token: token);
+        },
+      ),
       GoRoute(
         path: "/loggin",
         name: "/loggin",

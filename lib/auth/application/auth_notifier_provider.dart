@@ -52,17 +52,69 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   ///  REGISTER
-  Future<void> register(AppUser user, String password, AppUser appUser) async {
+  // داخل ملف auth_service.dart
+
+  ///  REGISTER - النسخة المصححة
+  /// REGISTER - النسخة المصححة داخل AuthNotifier
+  // Future<void> register({
+  //   required String email,
+  //   required String password,
+  //   required AppUser user,
+  // }) async {
+  //   try {
+  //     BotToast.showLoading();
+  //     // نرسل البيانات للـ service
+  //     await authService.register(user: user, password: password);
+  //     BotToast.showText(text: "تم إنشاء الحساب بنجاح");
+  //   } catch (e) {
+  //     print("Error in Notifier: $e");
+  //     rethrow;
+  //   } finally {
+  //     BotToast.closeAllLoading();
+  //   }
+  // }
+  Future<void> register({
+    required String email,
+    required String password,
+    required AppUser user,
+  }) async {
     try {
       BotToast.showLoading();
       await authService.register(user: user, password: password);
-      BotToast.showText(text: "تم إنشاء الحساب بنجاح، يمكنك تسجيل الدخول");
+
+      // 1. رسالة النجاح المطلوبة
+      BotToast.showText(
+        text: "تم إنشاء الحساب بنجاح، يرجى مراجعة بريدك لتأكيد الحساب",
+        duration: const Duration(seconds: 4),
+      );
     } catch (e) {
-      BotToast.showText(text: "فشل إنشاء الحساب");
+      // 2. إظهار الخطأ القادم من السيرفر بشكل نظيف
+      String cleanError = e.toString().replaceAll("Exception:", "");
+      BotToast.showText(text: "خطأ: $cleanError");
+      print("Registration Error: $e");
+      rethrow;
     } finally {
       BotToast.closeAllLoading();
     }
   }
+
+  /// REGISTER - نسخة معدلة
+  // Future<void> register({
+  //   required AppUser user,
+  //   required String password,
+  // }) async {
+  //   try {
+  //     BotToast.showLoading();
+  //     // نرسل البيانات للـ AuthService
+  //     await authService.register(user: user, password: password);
+  //     BotToast.showText(text: "تم إنشاء الحساب بنجاح، يمكنك تسجيل الدخول");
+  //   } catch (e) {
+  //     BotToast.showText(text: "فشل إنشاء الحساب");
+  //     rethrow; // نعيد رمي الخطأ لكي لا ينفذ الـ .then في الشاشة
+  //   } finally {
+  //     BotToast.closeAllLoading();
+  //   }
+  // }
 
   ///  تحديث بيانات المستخدم
   Future<void> refreshUser() async {
@@ -88,6 +140,24 @@ class AuthNotifier extends StateNotifier<AppUser?> {
       BotToast.showText(text: "تم إرسال رابط تغيير كلمة المرور");
     } catch (e) {
       BotToast.showText(text: "حصل خطأ");
+    } finally {
+      BotToast.closeAllLoading();
+    }
+  }
+
+  /// Reset  password
+
+  Future<void> completeResetPassword(String token, String newPassword) async {
+    try {
+      BotToast.showLoading();
+      // استدعاء الـ API (تأكدي من إضافة هذه الدالة في auth_service أولاً)
+      await authService.confirmResetPassword(
+        token: token,
+        newPassword: newPassword,
+      );
+      BotToast.showText(text: "تم تغيير كلمة المرور بنجاح");
+    } catch (e) {
+      BotToast.showText(text: "فشل التحديث: ${e.toString()}");
     } finally {
       BotToast.closeAllLoading();
     }

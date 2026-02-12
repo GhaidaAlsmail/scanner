@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     phone: String,
     birthDate: Date,
     profilePictureUrl: String,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
     nickNames: [String],
     isAdmin: { type: Boolean, default: false },
     stars: { type: Number, default: 0 },

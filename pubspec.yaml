@@ -62,6 +62,7 @@ dependencies:
   firebase_app_check: ^0.4.1+4
   supabase_flutter: ^2.0.0
   flutter_secure_storage: ^9.0.0
+  dio: ^5.9.1
 
 dev_dependencies:
   flutter_test:

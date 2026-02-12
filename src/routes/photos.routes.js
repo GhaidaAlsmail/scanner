@@ -6,7 +6,7 @@ import {protect} from '../middleware/auth.middleware.js';
 import upload from '../utils/upload.js'; 
 
 // استيراد الموديل (بدون أقواس {} لأننا استخدمنا export default)
-import Photo from '../modules/photos.js'; 
+import Photo from '../modules/photos/photos.js'; 
 
 // المسار: POST /api/photos/upload
 router.post('/upload', protect, upload.single('photo'), async (req, res) => {

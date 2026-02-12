@@ -64,23 +64,27 @@ class SignUpScreen extends ConsumerWidget {
                                 var email = form.control("email").value;
                                 var password = form.control("password").value;
 
-                                ref
-                                    .read(authNotifierProvider.notifier)
-                                    .register(
-                                      email,
-                                      password,
-                                      AppUser(
-                                        email: email,
+                                try {
+                                  // ✅ التعديل الصحيح داخل SignUpScreen
+                                  await ref
+                                      .read(authNotifierProvider.notifier)
+                                      .register(
+                                        email:
+                                            email, // 👈 هذا هو السطر الناقص الذي يسبب المشكلة!
                                         password: password,
-                                        name: userName,
-                                      ),
-                                    )
-                                    .then((value) {
-                                      // if (value != null) {
-                                      formGroup.reset();
-                                      context.pop();
-                                      // }
-                                    });
+                                        user: AppUser(
+                                          email: email,
+                                          name: userName,
+                                        ),
+                                      );
+                                  // إذا نجحت العملية
+                                  formGroup.reset();
+                                  if (context.mounted) {
+                                    context.pop();
+                                  }
+                                } catch (e) {
+                                  // الخطأ معالج في النوتيفاير عبر BotToast
+                                }
                               },
                       );
                     },

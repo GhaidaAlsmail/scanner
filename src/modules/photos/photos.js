@@ -14,4 +14,4 @@ const PhotoSchema = new mongoose.Schema({
 });
 
 const Photo = mongoose.model('Photo', PhotoSchema);
-export default Photo; // نقوم بتصدير الموديل كافتراضي
+export default Photo; 
