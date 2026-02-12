@@ -12,10 +12,6 @@ import 'package:json_theme/json_theme.dart';
 import 'router.dart';
 import 'translation.dart';
 
-//Platform  Firebase App Id
-// web       1:520383701430:web:fd1447bc6111cf93bfa117
-// android   1:520383701430:android:897ad7b9487e83b3bfa117
-//SHA256-90:b5:c7:8a:a0:4f:b0:4e:f9:b0:69:b0:47:b9:fd:d3:e3:46:48:c1:11:40:ad:6f:ae:b4:1e:8d:05:cc:d0:2b
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await initGoogleSignIn();
