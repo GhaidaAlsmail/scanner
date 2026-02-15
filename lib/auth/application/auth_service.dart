@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:convert';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:news_watch/auth/domain/app_user.dart';
@@ -100,9 +101,11 @@ class AuthService {
   }
 
   /// LOGOUT
+  /// LOGOUT (Utility)
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    // لا نضع state = null هنا لأن هذا الكلاس ليس Notifier
   }
 
   /// RESET PASSWORD

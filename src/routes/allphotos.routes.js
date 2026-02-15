@@ -1,11 +1,14 @@
-// Route: GET /api/photos/all
-router.get('/all', async (req, res) => {
-    try {
-        const photos = await Photo.find().sort({ createdAt: -1 });
-        
-        // ملاحظة: نرسل البيانات كـ 'photos' ليتطابق مع كود فلاتر fetchAllPhotos
-        res.status(200).json({ photos: photos });
-    } catch (error) {
-        res.status(500).json({ message: "خطأ في جلب البيانات" });
-    }
-});
+
+// router.get('/all', protect, async (req, res) => {
+//   try {
+//     // جلب الصور الخاصة بالمستخدم المسجل فقط
+//     const photos = await Photo.find({ user: req.user.id }); 
+    
+//     res.status(200).json({
+//       status: 'success',
+//       photos: photos // تأكدي أن الاسم هنا "photos" ليطابق الموديل في فلاتر
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: 'خطأ في جلب الصور', error: error.message });
+//   }
+// });

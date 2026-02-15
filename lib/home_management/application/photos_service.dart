@@ -3,9 +3,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../auth/domain/app_user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/presentation/widgets/get_base_url.dart';
-import '../application/add_photos_provider.dart'; // تأكدي من المسار الصحيح
+import '../application/add_photos_provider.dart';
+import '../domain/photos.dart';
 
 final photosServicesProvider = Provider((ref) => PhotosServices(Dio()));
 
@@ -46,16 +47,20 @@ class PhotosServices {
     );
   }
 
-  Future<List<AppUser>> fetchAllPhotos() async {
-    final baseUrl = await getDynamicBaseUrl(); // الآن أصبحت مرئية هنا
+  Future<List<Photos>> fetchAllPhotos() async {
+    final baseUrl = await getDynamicBaseUrl();
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
     try {
-      final response = await _dio.get('$baseUrl/photos/all');
+      final response = await _dio.get(
+        '$baseUrl/photos/all',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
 
       if (response.statusCode == 200) {
-        // نصل لمكان المصفوفة حسب تصميم السيرفر الخاص بكِ
         List data = response.data['photos'] ?? [];
-        return data.map((json) => AppUser.fromJson(json)).toList();
+        return data.map((json) => Photos.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
@@ -63,21 +68,87 @@ class PhotosServices {
     }
   }
 
-  /// دالة التقاط الصورة وتحديث الـ Provider
   Future<void> _pickImage(ImageSource source, WidgetRef ref) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        imageQuality: 80, // لتقليل حجم الصورة قبل رفعها للسيرفر
+        maxWidth: 800,
+        imageQuality: 50,
       );
 
       if (pickedFile != null) {
-        // تحديث الـ Provider بالملف الجديد
-        // ملاحظة: تأكدي أن imgFileProvider هو StateProvider<File?>
-        ref.read(imgFileProvider.notifier).state = File(pickedFile.path);
+        if (ref.context.mounted) {
+          ref.read(imgFileProvider.notifier).state = File(pickedFile.path);
+        }
       }
     } catch (e) {
-      debugPrint("خطأ أثناء التقاط الصورة: $e");
+      debugPrint("Error picking image: $e");
     }
+  }
+
+  /// دالة إرسال الصورة والبيانات للسيرفر
+  Future<void> createPhoto({
+    required String head,
+    required String name,
+    required String details,
+    required File imageFile,
+  }) async {
+    final baseUrl = await getDynamicBaseUrl();
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final String? token = prefs.getString('token');
+
+    debugPrint("DEBUG: My Token is -> $token");
+
+    if (token == null || token.isEmpty) {
+      throw Exception(
+        "لم يتم العثور على مفتاح الدخول، يرجى تسجيل الدخول مجدداً.",
+      );
+    }
+
+    // 2. تجهيز البيانات
+    FormData formData = FormData.fromMap({
+      "head": head,
+      "name": name,
+      "details": details,
+      "image": await MultipartFile.fromFile(
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      ),
+    });
+
+    try {
+      final response = await _dio.post(
+        '$baseUrl/photos/add-photo',
+        data: formData,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
+      );
+
+      debugPrint("DEBUG: Server Response -> ${response.data}");
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception("انتهت صلاحية الجلسة (401).");
+      }
+      throw Exception(e.response?.data['message'] ?? "خطأ في الاتصال بالسيرفر");
+    }
+  }
+
+  Future<void> uploadPdfToServer(File pdfFile) async {
+    final dio = Dio();
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        pdfFile.path,
+        filename: 'document.pdf',
+      ),
+      'title': 'My New PDF',
+    });
+
+    await dio.post('http://192.168.15.3:3006/api/upload-pdf', data: formData);
   }
 }

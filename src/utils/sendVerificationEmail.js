@@ -12,7 +12,7 @@ export const sendVerificationEmail = async (email, token) => {
   });
 
   await transporter.sendMail({
-    from: `"News Watch" <${process.env.EMAIL_USER}>`,
+    from: `"Finance Department" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Verify your email',
     html: `

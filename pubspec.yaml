@@ -63,6 +63,10 @@ dependencies:
   supabase_flutter: ^2.0.0
   flutter_secure_storage: ^9.0.0
   dio: ^5.9.1
+  pdf: ^3.10.8
+  printing: ^5.11.0
+  path_provider: ^2.1.1
+
 
 dev_dependencies:
   flutter_test:

@@ -15,8 +15,12 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Photos {
 
- String? get id; String get userId; String get title; String get details; Category get category;// required DateTime date,
- List<String> get tags; String? get profilePictureUrl;
+ String? get id;@JsonKey(name: 'user') String? get userId;// السيرفر يرسل user
+@JsonKey(name: 'head') String? get title;// السيرفر يرسل head
+@JsonKey(name: 'path') String? get profilePictureUrl;// السيرفر يرسل path
+ String? get details; String? get name;// أضيفي هذا لأنكِ ترسلينه من صفحة الإضافة
+ Category? get category;// اجعليه اختيارياً بإضافة ?
+ List<String>? get tags;
 /// Create a copy of Photos
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +33,16 @@ $PhotosCopyWith<Photos> get copyWith => _$PhotosCopyWithImpl<Photos>(this as Pho
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Photos&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.details, details) || other.details == details)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Photos&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&(identical(other.details, details) || other.details == details)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.tags, tags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,title,details,category,const DeepCollectionEquality().hash(tags),profilePictureUrl);
+int get hashCode => Object.hash(runtimeType,id,userId,title,profilePictureUrl,details,name,category,const DeepCollectionEquality().hash(tags));
 
 @override
 String toString() {
-  return 'Photos(id: $id, userId: $userId, title: $title, details: $details, category: $category, tags: $tags, profilePictureUrl: $profilePictureUrl)';
+  return 'Photos(id: $id, userId: $userId, title: $title, profilePictureUrl: $profilePictureUrl, details: $details, name: $name, category: $category, tags: $tags)';
 }
 
 
@@ -49,7 +53,7 @@ abstract mixin class $PhotosCopyWith<$Res>  {
   factory $PhotosCopyWith(Photos value, $Res Function(Photos) _then) = _$PhotosCopyWithImpl;
 @useResult
 $Res call({
- String? id, String userId, String title, String details, Category category, List<String> tags, String? profilePictureUrl
+ String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
 });
 
 
@@ -66,16 +70,17 @@ class _$PhotosCopyWithImpl<$Res>
 
 /// Create a copy of Photos
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = null,Object? title = null,Object? details = null,Object? category = null,Object? tags = null,Object? profilePictureUrl = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? userId = freezed,Object? title = freezed,Object? profilePictureUrl = freezed,Object? details = freezed,Object? name = freezed,Object? category = freezed,Object? tags = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
-as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as Category,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
-as List<String>,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String?,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
+as String?,details: freezed == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as Category?,tags: freezed == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -160,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String userId,  String title,  String details,  Category category,  List<String> tags,  String? profilePictureUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Photos() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_that.tags,_that.profilePictureUrl);case _:
+return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
   return orElse();
 
 }
@@ -181,10 +186,10 @@ return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String userId,  String title,  String details,  Category category,  List<String> tags,  String? profilePictureUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)  $default,) {final _that = this;
 switch (_that) {
 case _Photos():
-return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_that.tags,_that.profilePictureUrl);case _:
+return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +206,10 @@ return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String userId,  String title,  String details,  Category category,  List<String> tags,  String? profilePictureUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,) {final _that = this;
 switch (_that) {
 case _Photos() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_that.tags,_that.profilePictureUrl);case _:
+return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
   return null;
 
 }
@@ -216,24 +221,31 @@ return $default(_that.id,_that.userId,_that.title,_that.details,_that.category,_
 @JsonSerializable()
 
 class _Photos implements Photos {
-   _Photos({this.id, required this.userId, required this.title, required this.details, required this.category, required final  List<String> tags, this.profilePictureUrl}): _tags = tags;
+  const _Photos({this.id, @JsonKey(name: 'user') this.userId, @JsonKey(name: 'head') this.title, @JsonKey(name: 'path') this.profilePictureUrl, this.details, this.name, this.category, final  List<String>? tags}): _tags = tags;
   factory _Photos.fromJson(Map<String, dynamic> json) => _$PhotosFromJson(json);
 
 @override final  String? id;
-@override final  String userId;
-@override final  String title;
-@override final  String details;
-@override final  Category category;
-// required DateTime date,
- final  List<String> _tags;
-// required DateTime date,
-@override List<String> get tags {
+@override@JsonKey(name: 'user') final  String? userId;
+// السيرفر يرسل user
+@override@JsonKey(name: 'head') final  String? title;
+// السيرفر يرسل head
+@override@JsonKey(name: 'path') final  String? profilePictureUrl;
+// السيرفر يرسل path
+@override final  String? details;
+@override final  String? name;
+// أضيفي هذا لأنكِ ترسلينه من صفحة الإضافة
+@override final  Category? category;
+// اجعليه اختيارياً بإضافة ?
+ final  List<String>? _tags;
+// اجعليه اختيارياً بإضافة ?
+@override List<String>? get tags {
+  final value = _tags;
+  if (value == null) return null;
   if (_tags is EqualUnmodifiableListView) return _tags;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_tags);
+  return EqualUnmodifiableListView(value);
 }
 
-@override final  String? profilePictureUrl;
 
 /// Create a copy of Photos
 /// with the given fields replaced by the non-null parameter values.
@@ -248,16 +260,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Photos&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.details, details) || other.details == details)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Photos&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&(identical(other.details, details) || other.details == details)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._tags, _tags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,title,details,category,const DeepCollectionEquality().hash(_tags),profilePictureUrl);
+int get hashCode => Object.hash(runtimeType,id,userId,title,profilePictureUrl,details,name,category,const DeepCollectionEquality().hash(_tags));
 
 @override
 String toString() {
-  return 'Photos(id: $id, userId: $userId, title: $title, details: $details, category: $category, tags: $tags, profilePictureUrl: $profilePictureUrl)';
+  return 'Photos(id: $id, userId: $userId, title: $title, profilePictureUrl: $profilePictureUrl, details: $details, name: $name, category: $category, tags: $tags)';
 }
 
 
@@ -268,7 +280,7 @@ abstract mixin class _$PhotosCopyWith<$Res> implements $PhotosCopyWith<$Res> {
   factory _$PhotosCopyWith(_Photos value, $Res Function(_Photos) _then) = __$PhotosCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, String userId, String title, String details, Category category, List<String> tags, String? profilePictureUrl
+ String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
 });
 
 
@@ -285,16 +297,17 @@ class __$PhotosCopyWithImpl<$Res>
 
 /// Create a copy of Photos
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = null,Object? title = null,Object? details = null,Object? category = null,Object? tags = null,Object? profilePictureUrl = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? userId = freezed,Object? title = freezed,Object? profilePictureUrl = freezed,Object? details = freezed,Object? name = freezed,Object? category = freezed,Object? tags = freezed,}) {
   return _then(_Photos(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
-as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as Category,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
-as List<String>,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String?,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
+as String?,details: freezed == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as Category?,tags: freezed == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 

@@ -51,28 +51,6 @@ class AuthNotifier extends StateNotifier<AppUser?> {
     }
   }
 
-  ///  REGISTER
-  // داخل ملف auth_service.dart
-
-  ///  REGISTER - النسخة المصححة
-  /// REGISTER - النسخة المصححة داخل AuthNotifier
-  // Future<void> register({
-  //   required String email,
-  //   required String password,
-  //   required AppUser user,
-  // }) async {
-  //   try {
-  //     BotToast.showLoading();
-  //     // نرسل البيانات للـ service
-  //     await authService.register(user: user, password: password);
-  //     BotToast.showText(text: "تم إنشاء الحساب بنجاح");
-  //   } catch (e) {
-  //     print("Error in Notifier: $e");
-  //     rethrow;
-  //   } finally {
-  //     BotToast.closeAllLoading();
-  //   }
-  // }
   Future<void> register({
     required String email,
     required String password,
@@ -98,24 +76,6 @@ class AuthNotifier extends StateNotifier<AppUser?> {
     }
   }
 
-  /// REGISTER - نسخة معدلة
-  // Future<void> register({
-  //   required AppUser user,
-  //   required String password,
-  // }) async {
-  //   try {
-  //     BotToast.showLoading();
-  //     // نرسل البيانات للـ AuthService
-  //     await authService.register(user: user, password: password);
-  //     BotToast.showText(text: "تم إنشاء الحساب بنجاح، يمكنك تسجيل الدخول");
-  //   } catch (e) {
-  //     BotToast.showText(text: "فشل إنشاء الحساب");
-  //     rethrow; // نعيد رمي الخطأ لكي لا ينفذ الـ .then في الشاشة
-  //   } finally {
-  //     BotToast.closeAllLoading();
-  //   }
-  // }
-
   ///  تحديث بيانات المستخدم
   Future<void> refreshUser() async {
     try {
@@ -127,9 +87,19 @@ class AuthNotifier extends StateNotifier<AppUser?> {
 
   ///  LOGOUT
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    state = null;
+    try {
+      // 1. حذف التوكن من الذاكرة
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+
+      // 2. تصفير الحالة فوراً (هذا هو السر في تحديث الشاشة)
+      state = null;
+
+      // 3. (اختياري) إظهار رسالة بسيطة
+      BotToast.showText(text: "تم تسجيل الخروج بنجاح");
+    } catch (e) {
+      print("Logout Error: $e");
+    }
   }
 
   ///  RESET PASSWORD (endpoint backend)

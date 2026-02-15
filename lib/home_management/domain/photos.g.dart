@@ -8,22 +8,24 @@ part of 'photos.dart';
 
 _Photos _$PhotosFromJson(Map<String, dynamic> json) => _Photos(
   id: json['id'] as String?,
-  userId: json['userId'] as String,
-  title: json['title'] as String,
-  details: json['details'] as String,
-  category: $enumDecode(_$CategoryEnumMap, json['category']),
-  tags: (json['tags'] as List<dynamic>).map((e) => e as String).toList(),
-  profilePictureUrl: json['profilePictureUrl'] as String?,
+  userId: json['user'] as String?,
+  title: json['head'] as String?,
+  profilePictureUrl: json['path'] as String?,
+  details: json['details'] as String?,
+  name: json['name'] as String?,
+  category: $enumDecodeNullable(_$CategoryEnumMap, json['category']),
+  tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
 );
 
 Map<String, dynamic> _$PhotosToJson(_Photos instance) => <String, dynamic>{
   'id': instance.id,
-  'userId': instance.userId,
-  'title': instance.title,
+  'user': instance.userId,
+  'head': instance.title,
+  'path': instance.profilePictureUrl,
   'details': instance.details,
-  'category': _$CategoryEnumMap[instance.category]!,
+  'name': instance.name,
+  'category': _$CategoryEnumMap[instance.category],
   'tags': instance.tags,
-  'profilePictureUrl': instance.profilePictureUrl,
 };
 
 const _$CategoryEnumMap = {
