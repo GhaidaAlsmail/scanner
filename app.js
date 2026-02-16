@@ -7,6 +7,7 @@ import { connectDB } from './src/config/db.js';
 import authRoutes from './src/modules/auth/auth.routes.js';
 import userRoutes from './src/modules/users/user.routes.js';
 import photoRoutes from './src/routes/photos.routes.js'; 
+import documentRoutes from './src/modules/documents/routes/documents.routes.js';
 
 dotenv.config();
 await connectDB();
@@ -24,7 +25,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/photos', photoRoutes); 
-
+app.use('/api/photos', photoRoutes); // هذا يجعل كل الروابط تبدأ بـ /api/photos
+app.use('/api/documents', documentRoutes);
 const PORT = process.env.PORT || 3006;
 
 app.use((err, req, res, next) => {

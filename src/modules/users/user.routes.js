@@ -1,20 +1,4 @@
-// import { Router } from 'express';
-// import { protect } from '../../middlewares/auth.middleware.js';
-// import User from '../../models/user.model.js';
 
-// const router = Router();
-
-// // مسار الحصول على بياناتي (يستخدمه Flutter عند فتح التطبيق)
-// router.get('/me', protect, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.userId).select('-passwordHash');
-//     res.json(user);
-//   } catch (error) {
-//     res.status(500).json({ message: 'خطأ في السيرفر' });
-//   }
-// });
-
-// export default router;
 import { Router } from 'express';
 import { protect } from '../../middleware/auth.middleware.js';
 import User from './user.model.js';

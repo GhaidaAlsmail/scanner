@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:news_watch/auth/presentation/screens/reset_passwords.dart';
+import 'package:news_watch/home_management/presentation/screens/all_documents_screen.dart';
 import 'auth/application/auth_notifier_provider.dart' show authNotifierProvider;
 import 'auth/presentation/screens/log_in_screen.dart';
 import 'auth/presentation/screens/sign_up_screen.dart';
@@ -162,6 +163,11 @@ final router = Provider<GoRouter>((ref) {
         path: "/all-photos",
         name: "all-photos",
         builder: (context, state) => const AllPhotosScreen(),
+      ),
+      GoRoute(
+        path: "/all-documents",
+        name: "all-documents",
+        builder: (context, state) => const AllDocumentsScreen(),
       ),
       GoRoute(
         path: '/reset-password/:token',

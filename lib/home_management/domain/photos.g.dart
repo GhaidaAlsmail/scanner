@@ -7,7 +7,7 @@ part of 'photos.dart';
 // **************************************************************************
 
 _Photos _$PhotosFromJson(Map<String, dynamic> json) => _Photos(
-  id: json['id'] as String?,
+  id: json['_id'] as String?,
   userId: json['user'] as String?,
   title: json['head'] as String?,
   profilePictureUrl: json['path'] as String?,
@@ -18,7 +18,7 @@ _Photos _$PhotosFromJson(Map<String, dynamic> json) => _Photos(
 );
 
 Map<String, dynamic> _$PhotosToJson(_Photos instance) => <String, dynamic>{
-  'id': instance.id,
+  '_id': instance.id,
   'user': instance.userId,
   'head': instance.title,
   'path': instance.profilePictureUrl,

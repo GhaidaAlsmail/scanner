@@ -7,7 +7,6 @@ import 'package:news_watch/auth/application/auth_notifier_provider.dart';
 import 'package:news_watch/core/presentation/widgets/reactive_text_input_widget.dart';
 import 'package:news_watch/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
-import '../../../auth/application/auth_service.dart';
 import '../../../core/presentation/widgets/button_widget.dart';
 import '../../application/add_photos_provider.dart';
 import '../../application/photos_service.dart';
@@ -84,7 +83,7 @@ class AddPhotosScreen extends ConsumerWidget {
                           ),
                   ),
                 ),
-                Gap(35),
+                Gap(55),
                 // --- الحقول النصية ---
                 ReactiveTextInputWidget(
                   hint: 'العنوان',
@@ -103,7 +102,7 @@ class AddPhotosScreen extends ConsumerWidget {
                   controllerName: 'details',
                   inputStyle: InputStyle.outlined,
                 ),
-                Gap(35),
+                Gap(55),
                 // --- الأزرار ---
                 Row(
                   children: [
@@ -151,7 +150,6 @@ class AddPhotosScreen extends ConsumerWidget {
                               ref.read(imgFileProvider.notifier).state = null;
                             }
                           } catch (e) {
-                            // إذا كان الخطأ بسبب التوكن، سيظهر هنا بوضوح بدل تسجيل الخروج الصامت
                             debugPrint("Upload Error: $e");
                             BotToast.showText(text: 'Error: ${e.toString()}');
                           } finally {
@@ -172,9 +170,22 @@ class AddPhotosScreen extends ConsumerWidget {
                   ],
                 ),
                 Gap(35),
-                ButtonWidget(
-                  text: "show all images".i18n,
-                  onTap: () => context.push('/all-photos'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ButtonWidget(
+                        text: "show all images".i18n,
+                        onTap: () => context.push('/all-photos'),
+                      ),
+                    ),
+                    const Gap(15),
+                    Expanded(
+                      child: ButtonWidget(
+                        text: "عرض ملفات PDF".i18n,
+                        onTap: () => context.push('/all-documents'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -15,12 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Photos {
 
- String? get id;@JsonKey(name: 'user') String? get userId;// السيرفر يرسل user
-@JsonKey(name: 'head') String? get title;// السيرفر يرسل head
-@JsonKey(name: 'path') String? get profilePictureUrl;// السيرفر يرسل path
- String? get details; String? get name;// أضيفي هذا لأنكِ ترسلينه من صفحة الإضافة
- Category? get category;// اجعليه اختيارياً بإضافة ?
- List<String>? get tags;
+@JsonKey(name: '_id') String? get id;@JsonKey(name: 'user') String? get userId;@JsonKey(name: 'head') String? get title;@JsonKey(name: 'path') String? get profilePictureUrl; String? get details; String? get name; Category? get category; List<String>? get tags;
 /// Create a copy of Photos
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -53,7 +48,7 @@ abstract mixin class $PhotosCopyWith<$Res>  {
   factory $PhotosCopyWith(Photos value, $Res Function(Photos) _then) = _$PhotosCopyWithImpl;
 @useResult
 $Res call({
- String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
+@JsonKey(name: '_id') String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
 });
 
 
@@ -165,7 +160,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Photos() when $default != null:
 return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
@@ -186,7 +181,7 @@ return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)  $default,) {final _that = this;
 switch (_that) {
 case _Photos():
 return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
@@ -206,7 +201,7 @@ return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: '_id')  String? id, @JsonKey(name: 'user')  String? userId, @JsonKey(name: 'head')  String? title, @JsonKey(name: 'path')  String? profilePictureUrl,  String? details,  String? name,  Category? category,  List<String>? tags)?  $default,) {final _that = this;
 switch (_that) {
 case _Photos() when $default != null:
 return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.details,_that.name,_that.category,_that.tags);case _:
@@ -221,23 +216,17 @@ return $default(_that.id,_that.userId,_that.title,_that.profilePictureUrl,_that.
 @JsonSerializable()
 
 class _Photos implements Photos {
-  const _Photos({this.id, @JsonKey(name: 'user') this.userId, @JsonKey(name: 'head') this.title, @JsonKey(name: 'path') this.profilePictureUrl, this.details, this.name, this.category, final  List<String>? tags}): _tags = tags;
+  const _Photos({@JsonKey(name: '_id') this.id, @JsonKey(name: 'user') this.userId, @JsonKey(name: 'head') this.title, @JsonKey(name: 'path') this.profilePictureUrl, this.details, this.name, this.category, final  List<String>? tags}): _tags = tags;
   factory _Photos.fromJson(Map<String, dynamic> json) => _$PhotosFromJson(json);
 
-@override final  String? id;
+@override@JsonKey(name: '_id') final  String? id;
 @override@JsonKey(name: 'user') final  String? userId;
-// السيرفر يرسل user
 @override@JsonKey(name: 'head') final  String? title;
-// السيرفر يرسل head
 @override@JsonKey(name: 'path') final  String? profilePictureUrl;
-// السيرفر يرسل path
 @override final  String? details;
 @override final  String? name;
-// أضيفي هذا لأنكِ ترسلينه من صفحة الإضافة
 @override final  Category? category;
-// اجعليه اختيارياً بإضافة ?
  final  List<String>? _tags;
-// اجعليه اختيارياً بإضافة ?
 @override List<String>? get tags {
   final value = _tags;
   if (value == null) return null;
@@ -280,7 +269,7 @@ abstract mixin class _$PhotosCopyWith<$Res> implements $PhotosCopyWith<$Res> {
   factory _$PhotosCopyWith(_Photos value, $Res Function(_Photos) _then) = __$PhotosCopyWithImpl;
 @override @useResult
 $Res call({
- String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
+@JsonKey(name: '_id') String? id,@JsonKey(name: 'user') String? userId,@JsonKey(name: 'head') String? title,@JsonKey(name: 'path') String? profilePictureUrl, String? details, String? name, Category? category, List<String>? tags
 });
 
 
