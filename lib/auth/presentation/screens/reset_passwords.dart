@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:news_watch/auth/application/auth_notifier_provider.dart';
-import 'package:news_watch/core/presentation/widgets/button_widget.dart';
-import 'package:news_watch/core/presentation/widgets/reactive_password_input_widget.dart';
+import 'package:scanner/auth/application/auth_notifier_provider.dart';
+import 'package:scanner/core/presentation/widgets/button_widget.dart';
+import 'package:scanner/core/presentation/widgets/reactive_password_input_widget.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 
 class ResetPasswordScreen extends ConsumerWidget {

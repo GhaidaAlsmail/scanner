@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 
 enum InputStyle { underlined, outlined, filled }
@@ -32,20 +32,19 @@ class ReactiveTextInputWidget extends StatelessWidget {
         filled: inputStyle == InputStyle.filled,
         labelText: hint,
         border: inputStyle == InputStyle.outlined
+            ? OutlineInputBorder(borderRadius: BorderRadius.circular(10))
+            : inputStyle == InputStyle.filled
             ? OutlineInputBorder(
+                borderSide: BorderSide.none,
                 borderRadius: BorderRadius.circular(10),
               )
-            : inputStyle == InputStyle.filled
-                ? OutlineInputBorder(
-                    borderSide: BorderSide.none,
-                    borderRadius: BorderRadius.circular(10),
-                  )
-                : UnderlineInputBorder(),
+            : UnderlineInputBorder(),
         fillColor: inputStyle == InputStyle.filled
             ? Theme.of(context).colorScheme.outlineVariant
             : null,
       ),
-      validationMessages: validationMessages ??
+      validationMessages:
+          validationMessages ??
           {
             "required": (o) => "Required".i18n,
             "email": (o) => "Email is not valid".i18n,

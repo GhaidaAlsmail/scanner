@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 
 class TextButtonWidget extends StatelessWidget {
   const TextButtonWidget({
@@ -17,14 +17,9 @@ class TextButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton(
-      style: TextButton.styleFrom(
-        foregroundColor: foregroundColor,
-      ),
+      style: TextButton.styleFrom(foregroundColor: foregroundColor),
       onPressed: onTap,
-      child: Text(
-        text.i18n,
-        style: TextStyle(fontSize: size),
-      ),
+      child: Text(text.i18n, style: TextStyle(fontSize: size)),
     );
   }
 }

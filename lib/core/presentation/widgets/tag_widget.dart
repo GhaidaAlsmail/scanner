@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 
 class TagWidget extends StatelessWidget {
-  const TagWidget({
-    super.key,
-    required this.text,
-  });
+  const TagWidget({super.key, required this.text});
   final String text;
 
   @override

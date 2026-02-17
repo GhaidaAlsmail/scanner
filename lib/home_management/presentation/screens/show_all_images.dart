@@ -1,99 +1,65 @@
-// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: curly_braces_in_flow_control_structures, deprecated_member_use
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:news_watch/core/presentation/widgets/get_base_url.dart';
-import 'package:news_watch/home_management/application/photos_service.dart';
+import 'package:scanner/core/presentation/widgets/get_base_url.dart';
+import 'package:scanner/home_management/application/photos_service.dart';
 import '../../application/add_photos_provider.dart';
-import '../widgets/convert_to_pdf.dart';
 
-class AllPhotosScreen extends ConsumerWidget {
+class AllPhotosScreen extends ConsumerStatefulWidget {
   const AllPhotosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AllPhotosScreen> createState() => _AllPhotosScreenState();
+}
+
+class _AllPhotosScreenState extends ConsumerState<AllPhotosScreen> {
+  // 1. قائمة لتخزين الروابط المختارة
+  final List<String> _selectedImageUrls = [];
+
+  @override
+  Widget build(BuildContext context) {
     final photosAsync = ref.watch(allPhotosProvider);
 
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('All Photos'),
-      //   actions: [
-      //     photosAsync.maybeWhen(
-      //       data: (photosList) => IconButton(
-      //         icon: const Icon(Icons.picture_as_pdf),
-      //         onPressed: () async {
-      //           if (photosList.isNotEmpty) {
-      //             final rawBaseUrl = await getDynamicBaseUrl();
-      //             final imageBaseUrl = rawBaseUrl.replaceAll('/api', '');
-
-      //             final List<String> urls = photosList.map((p) {
-      //               return "$imageBaseUrl${p.profilePictureUrl}";
-      //             }).toList();
-
-      //             createPdfFromImages(urls);
-      //           } else {
-      //             ScaffoldMessenger.of(context).showSnackBar(
-      //               const SnackBar(content: Text("لا توجد صور لتحويلها")),
-      //             );
-      //           }
-      //         },
-      //       ),
-      //       orElse: () =>
-      //           const SizedBox.shrink(), // لا يظهر الزر في حالة التحميل أو الخطأ
-      //     ),
-      //   ],
-      //   centerTitle: true,
-      // ),
       appBar: AppBar(
-        title: const Text('All Photos'),
+        title: const Text('جميع الصور'),
         actions: [
-          photosAsync.maybeWhen(
-            data: (photosList) => IconButton(
-              icon: const Icon(Icons.picture_as_pdf),
-              // onPressed: () async {
-              //   final rawBaseUrl = await getDynamicBaseUrl();
-              //   final imageBaseUrl = rawBaseUrl.replaceAll('/api', '');
-
-              //   final List<String> urls = photosList
-              //       .map((p) => "$imageBaseUrl${p.profilePictureUrl}")
-              //       .toList();
-
-              //   await ref
-              //       .read(photosServicesProvider)
-              //       .generateAndUploadPdf(
-              //         imageUrls: urls,
-              //         docTitle:
-              //             "My_Document_${DateTime.now().millisecondsSinceEpoch}",
-              //       );
-              // },
+          // زر إنشاء PDF يظهر فقط إذا تم اختيار صور
+          if (_selectedImageUrls.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
               onPressed: () async {
-                if (photosList.isNotEmpty) {
-                  // أ- اطلب الاسم من المستخدم أولاً
-                  final String? fileName = await _showFileNameDialog(context);
+                final String? fileName = await _showFileNameDialog(context);
 
-                  // ب- إذا لم يغلق النافذة وأدخل اسماً
-                  if (fileName != null && fileName.isNotEmpty) {
-                    final rawBaseUrl = await getDynamicBaseUrl();
-                    final imageBaseUrl = rawBaseUrl.replaceAll('/api', '');
+                if (fileName != null && fileName.isNotEmpty) {
+                  try {
+                    BotToast.showLoading(); // إظهار مؤشر تحميل
 
-                    final List<String> urls = photosList.map((p) {
-                      return "$imageBaseUrl${p.profilePictureUrl}";
-                    }).toList();
-
-                    // ج- استدعاء الدالة مع الاسم الذي اختاره المستخدم
                     await ref
                         .read(photosServicesProvider)
                         .generateAndUploadPdf(
-                          imageUrls: urls,
-                          docTitle: fileName, // هنا نمرر الاسم المختار
+                          imageUrls: _selectedImageUrls,
+                          docTitle: fileName,
                         );
+
+                    BotToast.closeAllLoading();
+                    // 2. رسالة نجاح عند اكتمال العملية
+                    BotToast.showText(
+                      text: " تم حفظ ورفع ملف PDF بنجاح",
+                      duration: const Duration(seconds: 3),
+                    );
+
+                    // إفراغ القائمة بعد النجاح
+                    setState(() => _selectedImageUrls.clear());
+                  } catch (e) {
+                    BotToast.closeAllLoading();
+                    BotToast.showText(text: " فشل إنشاء الملف: $e");
                   }
                 }
               },
             ),
-            orElse: () => const SizedBox.shrink(),
-          ),
         ],
       ),
       body: photosAsync.when(
@@ -107,14 +73,14 @@ class AllPhotosScreen extends ConsumerWidget {
             );
           }
 
-          //  1. يفضل جلب الـ BaseUrl مرة واحدة خارج الـ Builder للأداء
           return FutureBuilder<String>(
             future: getDynamicBaseUrl(),
             builder: (context, snapshot) {
               if (!snapshot.hasData)
                 return const Center(child: CircularProgressIndicator());
 
-              // final baseUrl = snapshot.data!;
+              final String rawBaseUrl = snapshot.data!;
+              final String imageBaseUrl = rawBaseUrl.replaceAll('/api', '');
 
               return GridView.builder(
                 padding: const EdgeInsets.all(12),
@@ -127,55 +93,81 @@ class AllPhotosScreen extends ConsumerWidget {
                 itemCount: photos.length,
                 itemBuilder: (context, index) {
                   final photo = photos[index];
-                  final String rawBaseUrl = snapshot.data!;
-                  final String imageBaseUrl = rawBaseUrl.replaceAll('/api', '');
-
                   final fullImageUrl =
                       "$imageBaseUrl${photo.profilePictureUrl}";
 
-                  debugPrint("📸 Final Image URL: $fullImageUrl");
-                  // داخل itemBuilder في GridView.builder
+                  // فحص هل الصورة مختارة حالياً
+                  final bool isSelected = _selectedImageUrls.contains(
+                    fullImageUrl,
+                  );
+
                   return Card(
-                    elevation: 3,
+                    elevation: isSelected ? 8 : 3,
+                    color: isSelected ? Colors.blue[50] : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
+                      side: isSelected
+                          ? const BorderSide(color: Colors.blue, width: 2)
+                          : BorderSide.none,
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Stack(
-                      // استخدمنا Stack لوضع زر الحذف فوق الصورة
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: Image.network(
-                                fullImageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (ctx, error, stack) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Icon(
-                                    Icons.broken_image,
-                                    size: 40,
-                                    color: Colors.grey,
+                        InkWell(
+                          onTap: () {
+                            // تبديل حالة الاختيار عند الضغط على الكارد
+                            setState(() {
+                              if (isSelected) {
+                                _selectedImageUrls.remove(fullImageUrl);
+                              } else {
+                                _selectedImageUrls.add(fullImageUrl);
+                              }
+                            });
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: Image.network(
+                                  fullImageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (ctx, error, stack) =>
+                                      const Icon(Icons.broken_image),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  photo.title ?? 'بدون عنوان',
+                                  maxLines: 1,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                photo.title ?? 'بدون عنوان',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        // --- زر الحذف في الزاوية ---
+                        // --- شيك بوكس الاختيار ---
+                        Positioned(
+                          top: 5,
+                          left: 5,
+                          child: Checkbox(
+                            value: isSelected,
+                            activeColor: Colors.blue,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedImageUrls.add(fullImageUrl);
+                                } else {
+                                  _selectedImageUrls.remove(fullImageUrl);
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        // --- زر الحذف الأصلي ---
                         Positioned(
                           top: 5,
                           right: 5,
@@ -188,32 +180,14 @@ class AllPhotosScreen extends ConsumerWidget {
                                 color: Colors.grey,
                                 size: 20,
                               ),
-                              // ابحثي عن زر الحذف وغيري سطر الـ onPressed
                               onPressed: () {
-                                // استخراج البيانات كماب (Map)
                                 final Map<String, dynamic> photoMap = photo
                                     .toJson();
-
-                                // MongoDB يرسل المعرف دائماً باسم _id
-                                // سنحاول جلبه من _id أولاً، وإذا لم يوجد نجرب id
                                 final String? actualId =
                                     photoMap['_id']?.toString() ??
                                     photoMap['id']?.toString();
-
-                                debugPrint(
-                                  "🔍 الموديل يحتوي على ID: $actualId",
-                                );
-
-                                if (actualId != null && actualId != "null") {
+                                if (actualId != null) {
                                   _confirmDelete(context, ref, actualId);
-                                } else {
-                                  BotToast.showText(
-                                    text:
-                                        "خطأ: لم يتم العثور على معرف الصورة في البيانات",
-                                  );
-                                  debugPrint(
-                                    "البيانات الكاملة للصورة: $photoMap",
-                                  );
                                 }
                               },
                             ),
@@ -222,53 +196,6 @@ class AllPhotosScreen extends ConsumerWidget {
                       ],
                     ),
                   );
-                  // return Card(
-                  //   elevation: 3,
-                  //   shape: RoundedRectangleBorder(
-                  //     borderRadius: BorderRadius.circular(15),
-                  //   ),
-                  //   clipBehavior: Clip.antiAlias,
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.stretch,
-                  //     children: [
-                  //       Expanded(
-                  //         child: Image.network(
-                  //           fullImageUrl,
-                  //           fit: BoxFit.cover,
-                  //           errorBuilder: (ctx, error, stack) {
-                  //             return Container(
-                  //               color: Colors.grey[200],
-                  //               child: const Column(
-                  //                 mainAxisAlignment: MainAxisAlignment.center,
-                  //                 children: [
-                  //                   Icon(
-                  //                     Icons.broken_image,
-                  //                     size: 40,
-                  //                     color: Colors.grey,
-                  //                   ),
-                  //                   Text(
-                  //                     "404",
-                  //                     style: TextStyle(color: Colors.grey),
-                  //                   ),
-                  //                 ],
-                  //               ),
-                  //             );
-                  //           },
-                  //         ),
-                  //       ),
-                  //       Padding(
-                  //         padding: const EdgeInsets.all(8.0),
-                  //         child: Text(
-                  //           photo.title ?? 'بدون عنوان',
-                  //           maxLines: 1,
-                  //           overflow: TextOverflow.ellipsis,
-                  //           textAlign: TextAlign.center,
-                  //           style: const TextStyle(fontWeight: FontWeight.bold),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // );
                 },
               );
             },
@@ -281,7 +208,6 @@ class AllPhotosScreen extends ConsumerWidget {
   }
 }
 
-// نضع هذه الدالة في شاشة العرض (UI) وليس في الـ Service
 Future<String?> _showFileNameDialog(BuildContext context) async {
   TextEditingController controller = TextEditingController();
   return showDialog<String>(

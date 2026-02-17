@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 
 class ButtonWidget extends StatelessWidget {
-  const ButtonWidget({
-    super.key,
-    required this.text,
-    this.onTap,
-    this.width,
-  });
+  const ButtonWidget({super.key, required this.text, this.onTap, this.width});
   final String text;
   final Function()? onTap;
   final double? width;

@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
-import 'package:news_watch/auth/domain/app_user.dart';
+import 'package:scanner/auth/domain/app_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

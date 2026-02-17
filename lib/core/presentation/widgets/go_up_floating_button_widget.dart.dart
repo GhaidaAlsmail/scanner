@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 
 class MainIconButton extends StatelessWidget {
   const MainIconButton({super.key});
@@ -10,10 +10,7 @@ class MainIconButton extends StatelessWidget {
       tooltip: "Go Up".i18n,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(100),
-        side: BorderSide(
-          width: 2,
-          color: Theme.of(context).colorScheme.scrim,
-        ),
+        side: BorderSide(width: 2, color: Theme.of(context).colorScheme.scrim),
       ),
       backgroundColor: Theme.of(context).colorScheme.surface,
       onPressed: () {},

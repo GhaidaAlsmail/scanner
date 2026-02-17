@@ -3,7 +3,9 @@ const router = express.Router();
 import { protect } from '../middleware/auth.middleware.js'; 
 import upload from '../utils/upload.js'; 
 import Photo from '../modules/photos/photos.js'; 
-
+import fs from 'fs';
+import path from 'path';
+//----------------------------------------------------------------------------//
 //  1. إضافة صورة جديدة
 router.post('/add-photo', protect, upload.single('image'), async (req, res) => {
   try {
@@ -13,13 +15,11 @@ router.post('/add-photo', protect, upload.single('image'), async (req, res) => {
 
     const { head, name, details } = req.body;
 
-    // حفظ المسار النسبي فقط (Relative Path) لتجنب مشكلة C:/Users
     const photo = await Photo.create({
       user: req.user.id,
       head: head,
       name: name,
       details: details,
-      // نخزن المسار بحيث يبدأ بـ /uploads ليتمكن السيرفر من قراءته
       path: `/uploads/${req.user.id}/${req.file.filename}`, 
       filename: req.file.filename,
     });
@@ -38,7 +38,7 @@ router.post('/add-photo', protect, upload.single('image'), async (req, res) => {
     });
   }
 });
-
+//----------------------------------------------------------------------------//
 //  2. جلب كل الصور للمستخدم الحالي
 router.get('/all', protect, async (req, res) => {
   try {
@@ -52,21 +52,15 @@ router.get('/all', protect, async (req, res) => {
   }
 });
 
-import fs from 'fs';
-import path from 'path';
-
+//----------------------------------------------------------------------------//
 router.delete('/:id', protect, async (req, res) => {
     try {
-        // 1. البحث عن الصورة أولاً وتخزينها في متغير اسمه photo
-        // تأكدي من وجود كلمة await هنا
         const photo = await Photo.findById(req.params.id); 
 
-        // 2. التحقق من وجودها
         if (!photo) {
             return res.status(404).json({ message: "الصورة غير موجودة" });
         }
 
-        // 3. الآن يمكنك استخدام متغير photo لحذف الملف الفيزيائي
         if (photo.path) {
             const filePath = path.join(process.cwd(), photo.path);
             if (fs.existsSync(filePath)) {
@@ -74,7 +68,6 @@ router.delete('/:id', protect, async (req, res) => {
             }
         }
 
-        // 4. أخيراً حذفها من قاعدة البيانات
         await Photo.findByIdAndDelete(req.params.id);
 
         res.json({ message: "تم حذف الصورة والملف بنجاح" });

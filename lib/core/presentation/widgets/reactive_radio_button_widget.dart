@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 
 // ignore: must_be_immutable

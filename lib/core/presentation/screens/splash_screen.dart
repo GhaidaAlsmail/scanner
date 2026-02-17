@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:news_watch/auth/application/auth_notifier_provider.dart';
+import 'package:scanner/auth/application/auth_notifier_provider.dart';
 import '../../../translation.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:news_watch/translation.dart';
+import 'package:scanner/translation.dart';
 
 class SettingsCardWidget extends StatelessWidget {
   const SettingsCardWidget({
@@ -21,15 +21,13 @@ class SettingsCardWidget extends StatelessWidget {
           onTap: onTap,
           leading: icon,
           title: Text(title.i18n),
-          trailing: Icon(
-            Icons.arrow_forward_ios_rounded,
-          ),
+          trailing: Icon(Icons.arrow_forward_ios_rounded),
         ),
         Divider(
           color: Theme.of(context).colorScheme.onInverseSurface,
           height: 0,
           indent: 50,
-        )
+        ),
       ],
     );
   }

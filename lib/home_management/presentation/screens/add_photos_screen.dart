@@ -1,12 +1,17 @@
+// ignore_for_file: deprecated_member_use
+
+import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart' show GoRouterHelper;
-import 'package:news_watch/auth/application/auth_notifier_provider.dart';
-import 'package:news_watch/core/presentation/widgets/reactive_text_input_widget.dart';
-import 'package:news_watch/translation.dart';
+import 'package:go_router/go_router.dart';
+import 'package:scanner/core/presentation/widgets/reactive_text_input_widget.dart';
+import 'package:scanner/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
+
+// استيراد المكتبات الخاصة بمشروعك
+import '../../../auth/application/auth_notifier_provider.dart';
 import '../../../core/presentation/widgets/button_widget.dart';
 import '../../application/add_photos_provider.dart';
 import '../../application/photos_service.dart';
@@ -15,183 +20,228 @@ class AddPhotosScreen extends ConsumerWidget {
   const AddPhotosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, ref) {
-    var form = ref.watch(addNewsFormGroupProvider);
-    var image = ref.watch(imgFileProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final form = ref.watch(addNewsFormGroupProvider);
+    final image = ref.watch(imgFileProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Center(child: Text("Add Photo".i18n)),
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          "إضافة صورة".i18n,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: ReactiveForm(
-        formGroup: form,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              children: [
-                Gap(50),
-                // --- قسم التقاط الصورة ---
-                Material(
-                  borderRadius: BorderRadius.circular(15),
-                  color: Theme.of(context).colorScheme.onInverseSurface,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(15),
-                    onTap: () async {
-                      // استدعاء الملقط مع تمرير ref
-                      await ref
-                          .read(photosServicesProvider)
-                          .showImagePicker(context, ref);
-                    },
-                    child: image == null
-                        ? Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant,
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            height: 200,
-                            child: const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add, size: 40),
-                                  Text("Add Images"),
-                                ],
-                              ),
-                            ),
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Container(
-                              width: double.infinity,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Image.file(image, fit: BoxFit.contain),
-                            ),
-                          ),
-                  ),
-                ),
-                Gap(55),
-                // --- الحقول النصية ---
-                ReactiveTextInputWidget(
-                  hint: 'العنوان',
-                  controllerName: 'head',
-                  inputStyle: InputStyle.outlined,
-                ),
-                Gap(35),
-                ReactiveTextInputWidget(
-                  hint: 'اسم الموظف',
-                  controllerName: 'name',
-                  inputStyle: InputStyle.outlined,
-                ),
-                Gap(35),
-                ReactiveTextInputWidget(
-                  hint: 'تفاصيل وملاحظات',
-                  controllerName: 'details',
-                  inputStyle: InputStyle.outlined,
-                ),
-                Gap(55),
-                // --- الأزرار ---
-                Row(
-                  children: [
-                    Expanded(
-                      child: ButtonWidget(
-                        text: "add photo".i18n,
-                        onTap: () async {
-                          // 1. التحقق من صلاحية الفورم والصورة
-                          if (form.invalid) {
-                            form.markAllAsTouched();
-                            return;
-                          }
-
-                          if (image == null) {
-                            BotToast.showText(
-                              text: 'Please select an image'.i18n,
-                            );
-                            return;
-                          }
-
-                          try {
-                            BotToast.showLoading();
-
-                            // 2. إرسال الطلب للسيرفر
-                            await ref
-                                .read(photosServicesProvider)
-                                .createPhoto(
-                                  head: form.control('head').value,
-                                  name: form.control('name').value,
-                                  details: form.control('details').value,
-                                  imageFile: image,
-                                );
-
-                            // 3. التحقق من أن الشاشة لا تزال موجودة قبل التحديث
-                            if (context.mounted) {
-                              BotToast.showText(
-                                text: 'Saved Successfully!'.i18n,
-                              );
-
-                              // تحديث قائمة الصور فوراً
-                              ref.invalidate(allPhotosProvider);
-
-                              // تنظيف البيانات
-                              form.reset();
-                              ref.read(imgFileProvider.notifier).state = null;
-                            }
-                          } catch (e) {
-                            debugPrint("Upload Error: $e");
-                            BotToast.showText(text: 'Error: ${e.toString()}');
-                          } finally {
-                            BotToast.closeAllLoading();
-                          }
-                        },
-                      ),
-                    ),
-                    const Gap(15),
-                    Expanded(
-                      child: ButtonWidget(
-                        text: "sign out ".i18n,
-                        onTap: () {
-                          ref.read(authNotifierProvider.notifier).logout();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                Gap(35),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ButtonWidget(
-                        text: "show all images".i18n,
-                        onTap: () => context.push('/all-photos'),
-                      ),
-                    ),
-                    const Gap(15),
-                    Expanded(
-                      child: ButtonWidget(
-                        text: "عرض ملفات PDF".i18n,
-                        onTap: () => context.push('/all-documents'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            top: 200,
+            child: Image.asset(
+              "assets/images/logo.png",
+              cacheWidth: 400,
+              filterQuality: FilterQuality.low,
+              color: Colors.white.withOpacity(0.1),
+              colorBlendMode: BlendMode.modulate,
             ),
           ),
+
+          // 2. طبقة المحتوى
+          SafeArea(
+            child: ReactiveForm(
+              formGroup: form,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const Gap(30),
+
+                    // --- قسم التقاط الصورة الذكي ---
+                    _buildImageSection(context, ref, image),
+
+                    const Gap(40),
+
+                    // --- حقول الإدخال ---
+                    ReactiveTextInputWidget(
+                      hint: 'العنوان'.i18n,
+                      controllerName: 'head',
+                      inputStyle: InputStyle.outlined,
+                    ),
+                    const Gap(20),
+                    ReactiveTextInputWidget(
+                      hint: 'اسم الموظف'.i18n,
+                      controllerName: 'name',
+                      inputStyle: InputStyle.outlined,
+                    ),
+                    const Gap(20),
+                    ReactiveTextInputWidget(
+                      hint: 'تفاصيل وملاحظات'.i18n,
+                      controllerName: 'details',
+                      inputStyle: InputStyle.outlined,
+                    ),
+
+                    const Gap(40),
+
+                    // --- أزرار العمليات ---
+                    _buildActionButtons(context, ref, form, image),
+
+                    const Gap(20),
+
+                    // --- أزرار الانتقال ---
+                    _buildNavigationButtons(context),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ويجيت عرض واختيار الصورة
+  Widget _buildImageSection(BuildContext context, WidgetRef ref, File? image) {
+    return Material(
+      borderRadius: BorderRadius.circular(20),
+      elevation: 4,
+      color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () async {
+          // استدعاء الملقط (الذي سنطوره ليدعم السكنر)
+          await ref.read(photosServicesProvider).showImagePicker(context, ref);
+        },
+        child: Container(
+          width: double.infinity,
+          height: 250,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              width: 2,
+            ),
+          ),
+          child: image == null
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.document_scanner,
+                      size: 60,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const Gap(10),
+                    Text(
+                      "إضغط لالتقاط صورة مستند".i18n,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Image.file(image, fit: BoxFit.contain),
+                ),
         ),
       ),
     );
+  }
+
+  // أزرار الحفظ وتسجيل الخروج
+  Widget _buildActionButtons(
+    BuildContext context,
+    WidgetRef ref,
+    FormGroup form,
+    File? image,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: ButtonWidget(
+            text: "إضافة صورة".i18n,
+            onTap: () async => _handleUpload(context, ref, form, image),
+          ),
+        ),
+        const Gap(15),
+        Expanded(
+          child: ButtonWidget(
+            text: "تسجيل خروج ".i18n,
+            onTap: () => ref.read(authNotifierProvider.notifier).logout(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // أزرار التنقل بين الصفحات
+  Widget _buildNavigationButtons(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ButtonWidget(
+                text: "عرض كل الصور".i18n,
+                onTap: () => context.push('/all-photos'),
+              ),
+            ),
+            const Gap(15),
+            Expanded(
+              child: ButtonWidget(
+                text: "عرض ملفات PDF".i18n,
+                onTap: () => context.push('/all-documents'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // دالة المعالجة والرفع
+  Future<void> _handleUpload(
+    BuildContext context,
+    WidgetRef ref,
+    FormGroup form,
+    File? image,
+  ) async {
+    if (form.invalid) {
+      form.markAllAsTouched();
+      return;
+    }
+
+    if (image == null) {
+      BotToast.showText(text: 'Please select an image'.i18n);
+      return;
+    }
+
+    try {
+      BotToast.showLoading();
+      await ref
+          .read(photosServicesProvider)
+          .createPhoto(
+            head: form.control('head').value,
+            name: form.control('name').value,
+            details: form.control('details').value,
+            imageFile: image,
+          );
+
+      if (context.mounted) {
+        BotToast.showText(text: 'تم حفظ الصورة بنجاح!'.i18n);
+        ref.invalidate(allPhotosProvider);
+        form.reset();
+        ref.read(imgFileProvider.notifier).state = null;
+      }
+    } catch (e) {
+      BotToast.showText(text: 'Error: ${e.toString()}');
+    } finally {
+      BotToast.closeAllLoading();
+    }
   }
 }
