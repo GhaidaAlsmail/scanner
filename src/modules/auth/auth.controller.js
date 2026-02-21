@@ -37,15 +37,20 @@ export const forgotPassword = async (req, res) => {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     
-    // حفظ التوكن مشفراً
     user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.passwordResetExpires = Date.now() + 20 * 60 * 1000; 
 
-    // ✅ التعديل هنا: استخدام validateBeforeSave مهم جداً
     await user.save({ validateBeforeSave: false });
 
-    const resetURL = `http://localhost:3006/reset-password/${resetToken}`;
+    // --- التعديل هنا لجعل الرابط ديناميكياً ---
+    // req.get('host') تجلب الـ IP والـ Port تلقائياً (مثلاً 192.168.1.5:3006)
+    // req.protocol تجلب http أو https تلقائياً
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const resetURL = `${protocol}://${host}/reset-password/${resetToken}`;
+    
     const message = `نسيت كلمة المرور؟ قم بزيارة الرابط التالي لتغييرها: \n\n ${resetURL}`;
+    // ------------------------------------------
 
     const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -56,7 +61,7 @@ export const forgotPassword = async (req, res) => {
     });
 
     await transporter.sendMail({
-        from: `"Finance App" <${process.env.EMAIL_USER}>`,
+        from: `"Scanner App" <${process.env.EMAIL_USER}>`, // قمت بتغيير الاسم لـ Scanner App
         to: user.email,
         subject: 'رابط إعادة تعيين كلمة المرور',
         text: message,
@@ -65,11 +70,10 @@ export const forgotPassword = async (req, res) => {
     res.status(200).json({ status: 'success', message: 'تم إرسال الرابط بنجاح' });
 
   } catch (error) {
-    console.log("Error in forgotPassword:", error); // هذا سيخبرك في الـ terminal لماذا توقف
+    console.log("Error in forgotPassword:", error); 
     res.status(500).json({ message: 'خطأ في السيرفر' });
   }
 };
-
 
 export const resetPassword = async (req, res) => {
   try {
@@ -172,7 +176,6 @@ export const verifyEmail = async (req, res, next) => {
   }
 };
 
-// في ملف src/modules/auth/auth.controller.js
 
 export const getMe = async (req, res) => {
   try {
@@ -180,7 +183,7 @@ export const getMe = async (req, res) => {
     res.status(200).json({
       status: 'success',
       data: {
-        user: req.user // هنا ستظهر البيانات كاملة
+        user: req.user 
       }
     });
   } catch (error) {

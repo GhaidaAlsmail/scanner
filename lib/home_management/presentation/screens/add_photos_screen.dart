@@ -23,7 +23,13 @@ class AddPhotosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final form = ref.watch(addNewsFormGroupProvider);
     final image = ref.watch(imgFileProvider);
+    final currentUser = ref.watch(authNotifierProvider);
+    final String userName = currentUser?.name ?? "مستخدم غير معروف";
 
+    // تزويد الفورم بالقيمة تلقائياً إذا كان الحقل فارغاً
+    if (form.control('name').value == null) {
+      form.control('name').patchValue(userName);
+    }
     return Scaffold(
       resizeToAvoidBottomInset: true,
       extendBodyBehindAppBar: true,
@@ -75,11 +81,46 @@ class AddPhotosScreen extends ConsumerWidget {
                       inputStyle: InputStyle.outlined,
                     ),
                     const Gap(20),
-                    ReactiveTextInputWidget(
-                      hint: 'اسم الموظف'.i18n,
-                      controllerName: 'name',
-                      inputStyle: InputStyle.outlined,
+                    // --- حقل اسم الموظف (قائمة منسدلة تحتوي على اسم صاحب الحساب فقط) ---
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "الموظف المسؤول".i18n,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const Gap(5),
+                        ReactiveDropdownField<String>(
+                          formControlName: 'name',
+                          hint: Text('اختر الاسم'.i18n),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 15,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).colorScheme.surface,
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: userName,
+                              child: Text(userName),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                    // ReactiveTextInputWidget(
+                    //   hint: 'اسم الموظف'.i18n,
+                    //   controllerName: 'name',
+                    //   inputStyle: InputStyle.outlined,
+                    // ),
                     const Gap(20),
                     ReactiveTextInputWidget(
                       hint: 'تفاصيل وملاحظات'.i18n,

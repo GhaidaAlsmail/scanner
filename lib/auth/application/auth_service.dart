@@ -95,11 +95,44 @@ class AuthService {
     }
 
     final responseData = jsonDecode(res.body);
-    // تأكدي من مسار البيانات في الـ JSON القادم من سيرفرك
-    return AppUser.fromJson(responseData['data']['user']);
-  }
 
-  /// LOGOUT
+    // تعديل هنا: إذا كان سيرفر Node.js يرسل المستخدم مباشرة أو داخل كائن data
+    // جربي هذا المسار لأنه الأكثر شيوعاً في Node.js:
+    if (responseData['user'] != null) {
+      return AppUser.fromJson(responseData['user']);
+    } else if (responseData['data'] != null &&
+        responseData['data']['user'] != null) {
+      return AppUser.fromJson(responseData['data']['user']);
+    } else {
+      // إذا كان السيرفر يرسل بيانات المستخدم في جذور الـ JSON مباشرة
+      return AppUser.fromJson(responseData);
+    }
+  }
+  // /// GET CURRENT USER (/me)
+  // Future<AppUser> getMe() async {
+  //   final baseUrl = await getDynamicBaseUrl();
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('token');
+
+  //   if (token == null) throw Exception('No token');
+
+  //   final res = await http.get(
+  //     Uri.parse('$baseUrl/auth/me'),
+  //     headers: {
+  //       'Authorization': 'Bearer $token',
+  //       'Content-Type': 'application/json',
+  //     },
+  //   );
+
+  //   if (res.statusCode != 200) {
+  //     throw Exception('Unauthorized');
+  //   }
+
+  //   final responseData = jsonDecode(res.body);
+  //   // تأكدي من مسار البيانات في الـ JSON القادم من سيرفرك
+  //   return AppUser.fromJson(responseData['data']['user']);
+  // }
+
   /// LOGOUT (Utility)
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();

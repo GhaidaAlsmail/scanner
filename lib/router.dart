@@ -11,11 +11,10 @@ import 'home_management/presentation/screens/add_photos_screen.dart';
 import 'home_management/presentation/screens/show_all_images.dart';
 
 final router = Provider<GoRouter>((ref) {
-  // مراقبة حالة الـ AuthNotifier لإعادة بناء الراوتر عند تغير حالة المستخدم
   final authState = ref.watch(authNotifierProvider);
 
   return GoRouter(
-    initialLocation: "/splash", // البداية دائماً من السبلاش
+    initialLocation: "/splash",
     observers: [BotToastNavigatorObserver()],
 
     redirect: (context, state) {
@@ -50,7 +49,6 @@ final router = Provider<GoRouter>((ref) {
 
       return null; // اترك المستخدم يكمل مساره الطبيعي
     },
-
     routes: [
       GoRoute(
         path: '/splash',

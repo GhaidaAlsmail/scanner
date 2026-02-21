@@ -27,18 +27,25 @@ export const register = async (userData, password) => {
 export const login = async (email, password) => {
   const user = await User.findOne({ email }); // تصحيح الاسم إلى User
   if (!user) throw new Error('INVALID_CREDENTIALS');
-
-  if (!user.isVerified) throw new Error('EMAIL_NOT_VERIFIED');
+// المنطق: إذا كان المستخدم ليس موثقاً "و" ليس أدمن، عندها فقط نرفض الدخول
+if (!user.isVerified && user.role !== 'admin') {
+    throw new Error('يرجى توثيق الحساب أولاً');
+}
+  // if (!user.isVerified) throw new Error('EMAIL_NOT_VERIFIED');
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new Error('INVALID_CREDENTIALS');
 
   // توليد التوكن
-  const token = jwt.sign(
-    { userId: user._id, isAdmin: user.isAdmin },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-
+  // const token = jwt.sign(
+  //   { userId: user._id, isAdmin: user.isAdmin },
+  //   process.env.JWT_SECRET,
+  //   { expiresIn: '7d' }
+  // );
+const token = jwt.sign(
+  { id: user._id, role: user.role }, // إضافة الدور داخل التوكن
+  process.env.JWT_SECRET,
+  { expiresIn: '30d' } 
+);
   return { user, token };
 };

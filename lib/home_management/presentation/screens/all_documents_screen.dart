@@ -1,68 +1,9 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:url_launcher/url_launcher.dart'; // ستحتاجين لهذه المكتبة لفتح الروابط
-// import '../../application/photos_service.dart';
-
-// class AllDocumentsScreen extends ConsumerWidget {
-//   const AllDocumentsScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context, WidgetRef ref) {
-//     // سنفترض أنكِ ستقومين بإنشاء provider لجلب المستندات
-//     // كحل سريع، سنستخدم FutureBuilder مباشرة مع الدالة التي سنكتبها في الخدمة
-
-//     return Scaffold(
-//       appBar: AppBar(title: const Text("المستندات المحفوظة (PDF)")),
-//       body: FutureBuilder(
-//         future: ref
-//             .read(photosServicesProvider)
-//             .fetchAllDocuments(), // سننشئ هذه الدالة
-//         builder: (context, snapshot) {
-//           if (snapshot.connectionState == ConnectionState.waiting) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-//           if (snapshot.hasError) {
-//             return Center(child: Text("خطأ: ${snapshot.error}"));
-//           }
-
-//           final docs = snapshot.data as List<dynamic>;
-
-//           if (docs.isEmpty) {
-//             return const Center(child: Text("لا توجد مستندات محفوظة"));
-//           }
-
-//           return ListView.builder(
-//             itemCount: docs.length,
-//             itemBuilder: (context, index) {
-//               final doc = docs[index];
-//               return ListTile(
-//                 leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-//                 title: Text(doc['title'] ?? 'بدون عنوان'),
-//                 subtitle: Text(
-//                   "التاريخ: ${doc['createdAt'].toString().split('T')[0]}",
-//                 ),
-//                 trailing: const Icon(Icons.open_in_new),
-//                 onTap: () async {
-//                   // هنا نفتح رابط الملف الموجود على السيرفر
-//                   final url = "http://192.168.15.3:3006${doc['pdfPath']}";
-//                   if (!await launchUrl(Uri.parse(url))) {
-//                     throw 'Could not launch $url';
-//                   }
-//                 },
-//               );
-//             },
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../application/photos_service.dart';
-import 'package:bot_toast/bot_toast.dart'; // اختياري للتنبيهات الجميلة
+import 'package:bot_toast/bot_toast.dart';
+import 'package:scanner/core/presentation/widgets/get_base_url.dart';
 
 class AllDocumentsScreen extends ConsumerStatefulWidget {
   const AllDocumentsScreen({super.key});
@@ -133,14 +74,14 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
                       onPressed: () => _openPdf(doc['pdfPath']),
                     ),
                     // أيقونة الحذف
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_forever,
-                        color: Colors.redAccent,
-                      ),
-                      onPressed: () =>
-                          _confirmDelete(docId, doc['title'] ?? 'المستند'),
-                    ),
+                    // IconButton(
+                    //   icon: const Icon(
+                    //     Icons.delete_forever,
+                    //     color: Colors.redAccent,
+                    //   ),
+                    //   onPressed: () =>
+                    //       _confirmDelete(docId, doc['title'] ?? 'المستند'),
+                    // ),
                   ],
                 ),
               );
@@ -151,15 +92,31 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
     );
   }
 
-  // دالة فتح الملف
+  //  دالة فتح الملف
+
   Future<void> _openPdf(String? path) async {
     if (path == null) return;
-    final url = "http://192.168.15.3:3006$path";
-    if (!await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    )) {
-      BotToast.showText(text: "تعذر فتح الملف");
+
+    try {
+      // 1. جلب الـ Base URL الديناميكي الذي أدخله المستخدم
+      String baseUrl = await getDynamicBaseUrl();
+
+      String domain = baseUrl.replaceAll('/api', '');
+
+      // 3. دمج الدومين مع مسار الملف
+      final url = "$domain$path";
+
+      debugPrint("Opening PDF from: $url"); // للتأكد من الرابط في الـ Console
+
+      if (!await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      )) {
+        BotToast.showText(text: "تعذر فتح الملف");
+      }
+    } catch (e) {
+      debugPrint("Error opening PDF: $e");
+      BotToast.showText(text: "خطأ في الرابط المبرمج");
     }
   }
 

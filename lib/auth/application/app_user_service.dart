@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:scanner/core/presentation/widgets/get_base_url.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/app_user.dart';
@@ -17,17 +18,16 @@ class AppUserService {
   final String baseUrl;
   AppUserService({required this.baseUrl});
 
-  ///  المستخدم الحالي
+  /// GET CURRENT USER (/me)
   Future<AppUser> getMe() async {
+    final baseUrl = await getDynamicBaseUrl();
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    if (token == null) {
-      throw Exception('No token');
-    }
+    if (token == null) throw Exception('No token');
 
     final res = await http.get(
-      Uri.parse('$baseUrl/users/me'),
+      Uri.parse('$baseUrl/auth/me'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -38,8 +38,39 @@ class AppUserService {
       throw Exception('Unauthorized');
     }
 
-    return AppUser.fromJson(jsonDecode(res.body));
+    final responseData = jsonDecode(res.body);
+
+    // بناءً على كود السيرفر الذي أرسلتِه:
+    // البيانات موجودة داخل responseData['data']['user']
+    if (responseData['data'] != null && responseData['data']['user'] != null) {
+      return AppUser.fromJson(responseData['data']['user']);
+    } else {
+      throw Exception('تنسيق البيانات القادم من السيرفر غير متوقع');
+    }
   }
+  // ///  المستخدم الحالي
+  // Future<AppUser> getMe() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('token');
+
+  //   if (token == null) {
+  //     throw Exception('No token');
+  //   }
+
+  //   final res = await http.get(
+  //     Uri.parse('$baseUrl/users/me'),
+  //     headers: {
+  //       'Authorization': 'Bearer $token',
+  //       'Content-Type': 'application/json',
+  //     },
+  //   );
+
+  //   if (res.statusCode != 200) {
+  //     throw Exception('Unauthorized');
+  //   }
+
+  //   return AppUser.fromJson(jsonDecode(res.body));
+  // }
 
   ///  تحديث المستخدم
   Future<AppUser> updateUser(AppUser user) async {

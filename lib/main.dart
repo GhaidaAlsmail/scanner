@@ -32,6 +32,7 @@ Future<void> main() async {
   final themeStr = await rootBundle.loadString(
     "assets/themes/light_theme.json",
   );
+
   final themeJson = jsonDecode(themeStr);
   final decoder = ThemeDecoder();
   final theme = decoder.decodeThemeData(themeJson, validate: false);

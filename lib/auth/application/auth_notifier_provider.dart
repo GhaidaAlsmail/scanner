@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,28 +22,70 @@ class AuthNotifier extends StateNotifier<AppUser?> {
     _restoreSession();
   }
 
-  ///  استعادة الجلسة عند فتح التطبيق
   Future<void> _restoreSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         state = null;
         return;
       }
 
-      state = await appUserService.getMe();
+      // محاولة جلب بيانات المستخدم
+      final user = await authService.getMe(); // استخدمي authService مباشرة
+      state = user;
     } catch (e) {
-      await logout();
+      debugPrint("Session Restore Error: $e");
+
+      // تغيير هام جداً: لا تحذفي التوكن إلا إذا كان الخطأ "401 Unauthorized"
+      // إذا كان الخطأ بسبب الإنترنت أو السيرفر، اتركيه ولا تسجلي خروج
+      if (e.toString().contains('Unauthorized') ||
+          e.toString().contains('401')) {
+        await logout();
+      } else {
+        state =
+            null; // اجعلي الحالة null ليبقى في صفحة اللوجين لكن التوكن محفوظ
+      }
     }
   }
+
+  Future<void> logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      state = null; // سيقوم الراوتر تلقائياً بتوجيهك لصفحة الـ Login
+      BotToast.showText(text: "تم تسجيل الخروج بنجاح");
+    } catch (e) {
+      debugPrint("Logout Error: $e");
+    }
+  }
+
+  ///  استعادة الجلسة عند فتح التطبيق
+  // Future<void> _restoreSession() async {
+  //   try {
+  //     final prefs = await SharedPreferences.getInstance();
+  //     final token = prefs.getString('token');
+
+  //     if (token == null) {
+  //       state = null;
+  //       return;
+  //     }
+
+  //     state = await appUserService.getMe();
+  //   } catch (e) {
+  //     await logout();
+  //   }
+  // }
 
   ///  LOGIN
   Future<void> login(String email, String password) async {
     try {
       BotToast.showLoading();
       final user = await authService.login(email: email, password: password);
+      // أضيفي هذا السطر هنا للتأكد من حفظ التوكن يدوياً
+      final prefs = await SharedPreferences.getInstance();
+
       state = user;
     } catch (e) {
       BotToast.showText(text: "البريد الإلكتروني أو كلمة المرور غير صحيحة");
@@ -86,21 +129,21 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   ///  LOGOUT
-  Future<void> logout() async {
-    try {
-      // 1. حذف التوكن من الذاكرة
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('token');
+  // Future<void> logout() async {
+  //   try {
+  //     // 1. حذف التوكن من الذاكرة
+  //     final prefs = await SharedPreferences.getInstance();
+  //     await prefs.remove('token');
 
-      // 2. تصفير الحالة فوراً (هذا هو السر في تحديث الشاشة)
-      state = null;
+  //     // 2. تصفير الحالة فوراً (هذا هو السر في تحديث الشاشة)
+  //     state = null;
 
-      // 3. (اختياري) إظهار رسالة بسيطة
-      BotToast.showText(text: "تم تسجيل الخروج بنجاح");
-    } catch (e) {
-      print("Logout Error: $e");
-    }
-  }
+  //     // 3. (اختياري) إظهار رسالة بسيطة
+  //     BotToast.showText(text: "تم تسجيل الخروج بنجاح");
+  //   } catch (e) {
+  //     print("Logout Error: $e");
+  //   }
+  // }
 
   ///  RESET PASSWORD (endpoint backend)
   Future<void> resetPassword(String email) async {
