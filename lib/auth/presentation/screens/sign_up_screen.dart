@@ -65,12 +65,10 @@ class SignUpScreen extends ConsumerWidget {
                                 var password = form.control("password").value;
 
                                 try {
-                                  // ✅ التعديل الصحيح داخل SignUpScreen
                                   await ref
                                       .read(authNotifierProvider.notifier)
                                       .register(
-                                        email:
-                                            email, // 👈 هذا هو السطر الناقص الذي يسبب المشكلة!
+                                        email: email,
                                         password: password,
                                         user: AppUser(
                                           email: email,

@@ -16,17 +16,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
+app.use('/uploads', (req, res, next) => {
+    req.url = decodeURIComponent(req.url);
+    next();
+}, express.static(path.join(process.cwd(), 'uploads')));
+// app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(cors());
-app.use(express.json());
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.json({ limit: '1000mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '1000mb', parameterLimit: 50000 }));
+
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+}); 
+
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/photos', photoRoutes); 
-app.use('/api/photos', photoRoutes); // هذا يجعل كل الروابط تبدأ بـ /api/photos
 app.use('/api/documents', documentRoutes);
+
 const PORT = process.env.PORT || 3006;
 
 app.use((err, req, res, next) => {
@@ -38,5 +49,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 );

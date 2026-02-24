@@ -1,3 +1,5 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:cunning_document_scanner/cunning_document_scanner.dart';
@@ -5,10 +7,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/presentation/widgets/get_base_url.dart';
 import '../application/add_photos_provider.dart';
-import '../domain/photos.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 
@@ -19,8 +21,149 @@ class PhotosServices {
   final Dio _dio;
 
   PhotosServices(this._dio);
+
+  // 1. التقاط الصور (كاميرا أو معرض) وإضافتها للقائمة
+  Future<void> _pickImage(ImageSource source, WidgetRef ref) async {
+    try {
+      if (source == ImageSource.camera) {
+        List<String>? pictures = await CunningDocumentScanner.getPictures();
+        if (pictures != null && pictures.isNotEmpty) {
+          final currentImages = ref.read(selectedImagesListProvider);
+          ref.read(selectedImagesListProvider.notifier).state = [
+            ...currentImages,
+            ...pictures.map((path) => File(path)),
+          ];
+        }
+      } else {
+        final XFile? pickedFile = await _picker.pickImage(source: source);
+        if (pickedFile != null) {
+          final currentImages = ref.read(selectedImagesListProvider);
+          ref.read(selectedImagesListProvider.notifier).state = [
+            ...currentImages,
+            File(pickedFile.path),
+          ];
+        }
+      }
+    } catch (e) {
+      BotToast.showText(text: "تعذر التقاط الصور");
+    }
+  }
+
   //----------------------------------------------------------------------------//
-  /// دالة إظهار خيارات التقاط الصورة
+  Future<void> generateAndUploadPdfFromFiles({
+    required List<File> imageFiles,
+    required String docTitle,
+    required String region,
+  }) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+
+      // جلب التوكن والتأكد من وجوده
+      final String? token = prefs.getString('token');
+
+      if (token == null || token.isEmpty) {
+        throw Exception("انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول");
+      }
+
+      // 1. إنشاء مستند PDF
+      final pdf = pw.Document();
+
+      for (var file in imageFiles) {
+        if (await file.exists()) {
+          final image = pw.MemoryImage(file.readAsBytesSync());
+          //   pdf.addPage(
+          //     pw.Page(
+          //       // استخدام تنسيق A3 مع هوامش بسيطة
+          //       pageFormat: PdfPageFormat.a3,
+          //       build: (pw.Context context) {
+          //         return pw.FullPage(
+          //           ignoreMargins: true,
+          //           child: pw.Center(
+          //             child: pw.Image(image, fit: pw.BoxFit.contain, dpi: 300),
+          //           ),
+          //         );
+          //       },
+          //     ),
+          //   );
+          pdf.addPage(
+            pw.Page(
+              // تحديد القياس A3 للمصنفات الكبيرة
+              pageFormat: PdfPageFormat.a3,
+              build: (pw.Context context) {
+                return pw.FullPage(
+                  ignoreMargins: true, // إلغاء الحواف لاستغلال المساحة كاملة
+                  child: pw.Center(
+                    child: pw.Image(
+                      image,
+                      fit: pw.BoxFit.contain, // يضمن ظهور المصنف كاملاً دون قص
+                      dpi: 400, // رفع الكثافة النقطية لأن الورقة كبيرة (A3)
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+      }
+
+      // 2. حفظ الملف في المجلد المؤقت للجهاز
+      final tempDir = await getTemporaryDirectory();
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final tempFile = File("${tempDir.path}/pdf_$timestamp.pdf");
+      await tempFile.writeAsBytes(await pdf.save());
+
+      // 3. تجهيز FormData
+      // ملاحظة: تأكدي أن أسماء الحقول (title, region, pdf) تطابق ما يتوقعه السيرفر
+      FormData formData = FormData.fromMap({
+        "title": docTitle,
+        "region": region,
+        "pdf": await MultipartFile.fromFile(
+          tempFile.path,
+          filename: "$docTitle.pdf",
+        ),
+      });
+
+      // 4. إرسال الطلب مع ترويسة المصادقة
+      final response = await _dio.post(
+        '$baseUrl/documents/upload-pdf',
+        data: formData,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token", // مفتاح حل مشكلة الـ 401
+            "Accept": "application/json",
+          },
+          // منع Dio من رمي Exception تلقائياً في حالات الـ 401 للتعامل معها يدوياً
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      debugPrint("Server Status Code: ${response.statusCode}");
+      debugPrint("Server Response Body: ${response.data}");
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        debugPrint("تم الرفع بنجاح للمنطقة: $region");
+        // تنظيف الملف المؤقت
+        if (await tempFile.exists()) await tempFile.delete();
+      } else if (response.statusCode == 401) {
+        throw Exception("غير مصرح لك بالعملية، يرجى تسجيل الدخول مجدداً");
+      } else {
+        throw Exception(
+          "فشل الرفع: ${response.data['message'] ?? 'خطأ غير معروف'}",
+        );
+      }
+    } on DioException catch (e) {
+      debugPrint("Dio Error Type: ${e.type}");
+      debugPrint("Dio Error Response: ${e.response?.data}");
+      throw Exception("خطأ في الاتصال بالسيرفر: ${e.message}");
+    } catch (e) {
+      debugPrint("General Error: $e");
+      rethrow;
+    }
+  }
+
+  //----------------------------------------------------------------------------//
+  // 3. إظهار خيارات التقاط الصورة
   Future<void> showImagePicker(BuildContext context, WidgetRef ref) async {
     showModalBottomSheet(
       context: context,
@@ -50,265 +193,60 @@ class PhotosServices {
       },
     );
   }
-
   //----------------------------------------------------------------------------//
-  Future<List<Photos>> fetchAllPhotos() async {
-    final baseUrl = await getDynamicBaseUrl();
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+  // 4. جلب المستندات
+  // photos_service.dart
 
+  Future<Map<String, dynamic>> fetchDocuments({required int page}) async {
     try {
-      final response = await _dio.get(
-        '$baseUrl/photos/all',
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-
-      if (response.statusCode == 200) {
-        List data = response.data['photos'] ?? [];
-        return data.map((json) => Photos.fromJson(json)).toList();
-      }
-      return [];
-    } catch (e) {
-      throw Exception("فشل تحميل الصور: $e");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  // Future<void> _pickImage(ImageSource source, WidgetRef ref) async {
-  //   try {
-  //     final XFile? pickedFile = await _picker.pickImage(
-  //       source: source,
-  //       maxWidth: 800,
-  //       imageQuality: 50,
-  //     );
-
-  //     if (pickedFile != null) {
-  //       if (ref.context.mounted) {
-  //         ref.read(imgFileProvider.notifier).state = File(pickedFile.path);
-  //       }
-  //     }
-  //   } catch (e) {
-  //     debugPrint("Error picking image: $e");
-  //   }
-  // }
-
-  Future<void> _pickImage(ImageSource source, WidgetRef ref) async {
-    try {
-      // إذا كان المصدر هو الكاميرا، نستخدم الماسح الضوئي الذكي
-      if (source == ImageSource.camera) {
-        List<String>? pictures = await CunningDocumentScanner.getPictures();
-
-        if (pictures != null && pictures.isNotEmpty) {
-          // نأخذ أول صورة تم التقاطها (لأن المكتبة تدعم التقاط عدة صور)
-          ref.read(imgFileProvider.notifier).state = File(pictures.first);
-        }
-      }
-      // إذا كان المصدر هو المعرض، نبقى على الطريقة القديمة
-      else {
-        final XFile? pickedFile = await _picker.pickImage(
-          source: source,
-          maxWidth: 800,
-          imageQuality: 50,
-        );
-        if (pickedFile != null) {
-          ref.read(imgFileProvider.notifier).state = File(pickedFile.path);
-        }
-      }
-    } catch (e) {
-      debugPrint("خطأ في التقاط الصورة أو المسح الضوئي: $e");
-      BotToast.showText(text: "تعذر فتح الماسح الضوئي");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  /// دالة إرسال الصورة والبيانات للسيرفر
-  Future<void> createPhoto({
-    required String head,
-    required String name,
-    required String details,
-    required File imageFile,
-  }) async {
-    final baseUrl = await getDynamicBaseUrl();
-
-    final prefs = await SharedPreferences.getInstance();
-
-    final String? token = prefs.getString('token');
-
-    debugPrint("DEBUG: My Token is -> $token");
-
-    if (token == null || token.isEmpty) {
-      throw Exception(
-        "لم يتم العثور على مفتاح الدخول، يرجى تسجيل الدخول مجدداً.",
-      );
-    }
-
-    // تجهيز البيانات
-    FormData formData = FormData.fromMap({
-      "head": head,
-      "name": name,
-      "details": details,
-      "image": await MultipartFile.fromFile(
-        imageFile.path,
-        filename: imageFile.path.split('/').last,
-      ),
-    });
-
-    try {
-      final response = await _dio.post(
-        '$baseUrl/photos/add-photo',
-        data: formData,
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
-      );
-
-      debugPrint("DEBUG: Server Response -> ${response.data}");
-      // BotToast.showText(text: "تم حفظ الصورة بنجاح");
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception("انتهت صلاحية الجلسة (401).");
-      }
-      throw Exception(e.response?.data['message'] ?? "خطأ في الاتصال بالسيرفر");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  Future<void> generateAndUploadPdf({
-    required List<String> imageUrls,
-    required String docTitle,
-  }) async {
-    final dio = Dio();
-
-    try {
-      // 1. جلب البيانات الأساسية
       final baseUrl = await getDynamicBaseUrl();
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('token');
 
-      if (token == null) throw Exception("Session expired");
-
-      // 2. إنشاء ملف PDF في الذاكرة (Memory)
-      final pdf = pw.Document();
-      for (var url in imageUrls) {
-        final response = await dio.get(
-          url,
-          options: Options(responseType: ResponseType.bytes),
-        );
-        final image = pw.MemoryImage(response.data);
-        pdf.addPage(
-          pw.Page(
-            build: (pw.Context context) => pw.Center(child: pw.Image(image)),
-          ),
-        );
-      }
-
-      // 3. حفظ الملف في مجلد مؤقت (سيحذف تلقائياً لاحقاً ولن يظهر للمستخدم في المعرض)
-      final tempDir = await getTemporaryDirectory();
-      //   إضافة .pdf للاسم هنا
-      final tempFile = File("${tempDir.path}/$docTitle.pdf");
-      await tempFile.writeAsBytes(await pdf.save());
-
-      // 4. تجهيز الـ FormData للرفع
-      FormData formData = FormData.fromMap({
-        "title": docTitle,
-        "pdf": await MultipartFile.fromFile(
-          tempFile.path,
-          filename: "$docTitle.pdf", // هذا الاسم الذي سيستلمه السيرفر
-        ),
-      });
-
-      // 5. إرسال الطلب للسيرفر
-      final response = await dio.post(
-        '$baseUrl/documents/upload-pdf',
-        data: formData,
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
+      final response = await _dio.get(
+        '$baseUrl/documents/all',
+        queryParameters: {'page': page, 'limit': 10},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 
-      if (response.statusCode == 201) {
-        debugPrint(" تم الرفع للسيرفر بنجاح باسم: $docTitle");
-        // اختياري: حذف الملف المؤقت فوراً بعد الرفع لزيادة المساحة
-        if (await tempFile.exists()) await tempFile.delete();
-      }
+      return response.data; // يحتوي على القائمة والميتا (meta)
     } catch (e) {
-      debugPrint(" فشل الرفع: $e");
-      rethrow;
+      throw Exception("فشل تحميل البيانات: $e");
     }
   }
-
   //----------------------------------------------------------------------------//
-  Future<List<dynamic>> fetchAllDocuments() async {
-    final rawBaseUrl = await getDynamicBaseUrl();
 
-    final url = '$rawBaseUrl/documents/all';
-
-    debugPrint(" جاري طلب الرابط: $url");
-
+  // 5. حذف مستند
+  Future<void> deleteDocument(String id) async {
     try {
+      final baseUrl = await getDynamicBaseUrl();
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      final response = await _dio.get(
-        url,
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-
-      if (response.statusCode == 200) {
-        return response.data;
-      }
-      return [];
-    } on DioException catch (e) {
-      debugPrint(" خطأ من Dio: ${e.response?.statusCode} - ${e.message}");
-
-      throw Exception("فشل تحميل المستندات: ${e.response?.statusCode}");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  Future<void> deletePhoto(String id) async {
-    final baseUrl = await getDynamicBaseUrl();
-
-    final url = '$baseUrl/photos/$id';
-
-    debugPrint(" محاولة الحذف بالرابط الصحيح: $url");
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    await _dio.delete(
-      url,
-      options: Options(headers: {"Authorization": "Bearer $token"}),
-    );
-  }
-
-  //----------------------------------------------------------------------------//
-  /// دالة حذف مستند PDF من السيرفر
-  Future<void> deleteDocument(String id) async {
-    final baseUrl = await getDynamicBaseUrl();
-
-    final url = '$baseUrl/documents/$id'; //////////////////////
-
-    debugPrint(" جاري حذف المستند بالرابط: $url");
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    try {
       await _dio.delete(
-        url,
+        '$baseUrl/documents/$id',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-      debugPrint(" تم حذف المستند بنجاح من السيرفر");
-    } on DioException catch (e) {
-      debugPrint(" فشل حذف المستند: ${e.response?.statusCode}");
-      throw Exception(e.response?.data['message'] ?? "خطأ في حذف المستند");
+    } catch (e) {
+      throw Exception("خطأ في حذف المستند");
     }
   }
 }
+
+//----------------------------------------------------------------------------//
+// void _openPdf(String pdfPath, String title) {
+//   String fullUrl = "$baseUrl/${pdfPath.replaceAll('\\', '/')}";
+
+//   Navigator.push(
+//     context,
+//     MaterialPageRoute(
+//       builder: (context) => Scaffold(
+//         appBar: AppBar(title: Text(title)),
+//         body: SfPdfViewer.network(
+//           fullUrl,
+//           headers: {"Authorization": "Bearer $token"}, // إذا كان المجلد محمياً
+//         ),
+//       ),
+//     ),
+//   );
+// }

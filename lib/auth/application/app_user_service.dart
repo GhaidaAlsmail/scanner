@@ -11,7 +11,6 @@ part 'app_user_service.g.dart';
 @riverpod
 AppUserService appUserService(Ref ref) {
   return AppUserService(baseUrl: 'http://10.72.210.150:3006/api');
-  // return AppUserService(baseUrl: 'http://10.0.2.2:3006/api');
 }
 
 class AppUserService {
@@ -40,37 +39,12 @@ class AppUserService {
 
     final responseData = jsonDecode(res.body);
 
-    // بناءً على كود السيرفر الذي أرسلتِه:
-    // البيانات موجودة داخل responseData['data']['user']
     if (responseData['data'] != null && responseData['data']['user'] != null) {
       return AppUser.fromJson(responseData['data']['user']);
     } else {
       throw Exception('تنسيق البيانات القادم من السيرفر غير متوقع');
     }
   }
-  // ///  المستخدم الحالي
-  // Future<AppUser> getMe() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('token');
-
-  //   if (token == null) {
-  //     throw Exception('No token');
-  //   }
-
-  //   final res = await http.get(
-  //     Uri.parse('$baseUrl/users/me'),
-  //     headers: {
-  //       'Authorization': 'Bearer $token',
-  //       'Content-Type': 'application/json',
-  //     },
-  //   );
-
-  //   if (res.statusCode != 200) {
-  //     throw Exception('Unauthorized');
-  //   }
-
-  //   return AppUser.fromJson(jsonDecode(res.body));
-  // }
 
   ///  تحديث المستخدم
   Future<AppUser> updateUser(AppUser user) async {

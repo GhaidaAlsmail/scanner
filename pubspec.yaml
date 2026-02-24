@@ -67,6 +67,7 @@ dependencies:
   printing: ^5.11.0
   path_provider: ^2.1.1
   cunning_document_scanner: ^1.1.0
+  syncfusion_flutter_pdfviewer: ^28.1.33
 
 
 dev_dependencies:

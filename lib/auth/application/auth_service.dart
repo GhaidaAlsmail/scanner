@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:scanner/auth/domain/app_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,7 +14,6 @@ part 'auth_service.g.dart';
 
 @riverpod
 AuthService authService(Ref ref) {
-  // القيمة هنا لم تعد تؤثر لأننا نعتمد على SharedPreferences داخل الكلاس
   return AuthService(Dio());
 }
 
@@ -26,6 +26,52 @@ class AuthService {
   Future<void> updateServerIp(String newIp) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('server_ip', newIp);
+  }
+
+  // /// LOGIN
+  // Future<AppUser> login({
+  //   required String email,
+  //   required String password,
+  // }) async {
+  //   final baseUrl = await getDynamicBaseUrl();
+
+  //   final res = await http.post(
+  //     Uri.parse('$baseUrl/auth/login'),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'email': email, 'password': password}),
+  //   );
+
+  //   if (res.statusCode != 200) {
+  //     throw Exception('Login failed');
+  //   }
+
+  //   final data = jsonDecode(res.body);
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setString('token', data['token']);
+
+  //   return AppUser.fromJson(data['user']);
+  // }
+
+  /// REGISTER
+  Future<void> register({
+    required AppUser user,
+    required String password,
+  }) async {
+    final baseUrl = await getDynamicBaseUrl();
+
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode({...user.toJson(), 'password': password}),
+    );
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      print("Server Error Response: ${res.body}");
+      throw Exception('Register failed: ${res.body}');
+    }
+
+    // إذا وصل الكود هنا، فالتسجيل نجح فعلاً!
+    print("Registration Successful!");
   }
 
   /// LOGIN
@@ -45,33 +91,19 @@ class AuthService {
       throw Exception('Login failed');
     }
 
+    // هنا نقوم بفك تشفير البيانات القادمة من السيرفر
     final data = jsonDecode(res.body);
+
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.setString('token', data['token']);
 
+    bool adminStatus = data['user']['isAdmin'] ?? false;
+    await prefs.setBool('isAdmin', adminStatus);
+
+    debugPrint("User Role: ${adminStatus ? 'Admin' : 'Employee'}");
+
     return AppUser.fromJson(data['user']);
-  }
-
-  /// REGISTER
-  Future<void> register({
-    required AppUser user,
-    required String password,
-  }) async {
-    final baseUrl = await getDynamicBaseUrl();
-
-    final res = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({...user.toJson(), 'password': password}),
-    );
-
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      print("Server Error Response: ${res.body}");
-      throw Exception('Register failed: ${res.body}');
-    }
-
-    // إذا وصل الكود هنا، فالتسجيل نجح فعلاً!
-    print("Registration Successful!");
   }
 
   /// GET CURRENT USER (/me)
@@ -96,8 +128,6 @@ class AuthService {
 
     final responseData = jsonDecode(res.body);
 
-    // تعديل هنا: إذا كان سيرفر Node.js يرسل المستخدم مباشرة أو داخل كائن data
-    // جربي هذا المسار لأنه الأكثر شيوعاً في Node.js:
     if (responseData['user'] != null) {
       return AppUser.fromJson(responseData['user']);
     } else if (responseData['data'] != null &&
@@ -108,36 +138,11 @@ class AuthService {
       return AppUser.fromJson(responseData);
     }
   }
-  // /// GET CURRENT USER (/me)
-  // Future<AppUser> getMe() async {
-  //   final baseUrl = await getDynamicBaseUrl();
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final token = prefs.getString('token');
-
-  //   if (token == null) throw Exception('No token');
-
-  //   final res = await http.get(
-  //     Uri.parse('$baseUrl/auth/me'),
-  //     headers: {
-  //       'Authorization': 'Bearer $token',
-  //       'Content-Type': 'application/json',
-  //     },
-  //   );
-
-  //   if (res.statusCode != 200) {
-  //     throw Exception('Unauthorized');
-  //   }
-
-  //   final responseData = jsonDecode(res.body);
-  //   // تأكدي من مسار البيانات في الـ JSON القادم من سيرفرك
-  //   return AppUser.fromJson(responseData['data']['user']);
-  // }
 
   /// LOGOUT (Utility)
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
-    // لا نضع state = null هنا لأن هذا الكلاس ليس Notifier
   }
 
   /// RESET PASSWORD
@@ -185,6 +190,45 @@ class AuthService {
     } on DioException catch (e) {
       print("Dio Error: ${e.response?.data}");
       throw Exception(e.response?.data['message'] ?? "فشل تغيير كلمة المرور");
+    }
+  }
+
+  Future<void> addEmployeeByAdmin({
+    required String name,
+    required String email,
+    required String password,
+    required String city,
+  }) async {
+    // 1. الحصول على الرابط الديناميكي
+    final baseUrl = await getDynamicBaseUrl();
+
+    // 2. الحصول على توكن المدير (لأن السيرفر لن يقبل إضافة موظف بدون صلاحية مدير)
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    // 3. إرسال الطلب للسيرفر
+    final res = await http.post(
+      Uri.parse(
+        '$baseUrl/auth/add-employee', //////////////////////////////////
+      ),
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token', // الهيدر الأساسي للصلاحية
+      },
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+        'city': city,
+      }),
+    );
+
+    // 4. التحقق من رد السيرفر
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      // استخراج رسالة الخطأ من السيرفر إذا وجدت
+      final errorData = jsonDecode(res.body);
+      throw Exception(errorData['message'] ?? 'فشل إنشاء حساب الموظف');
     }
   }
 }

@@ -1,6 +1,8 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:scanner/admin/screens/add_employee_screen.dart';
+import 'package:scanner/admin/screens/admin_control_page.dart';
 import 'package:scanner/auth/presentation/screens/reset_passwords.dart';
 import 'package:scanner/home_management/presentation/screens/all_documents_screen.dart';
 import 'auth/application/auth_notifier_provider.dart' show authNotifierProvider;
@@ -8,7 +10,6 @@ import 'auth/presentation/screens/log_in_screen.dart';
 import 'auth/presentation/screens/sign_up_screen.dart';
 import 'core/presentation/screens/splash_screen.dart';
 import 'home_management/presentation/screens/add_photos_screen.dart';
-import 'home_management/presentation/screens/show_all_images.dart';
 
 final router = Provider<GoRouter>((ref) {
   final authState = ref.watch(authNotifierProvider);
@@ -70,11 +71,11 @@ final router = Provider<GoRouter>((ref) {
         name: "add_photos",
         builder: (context, state) => const AddPhotosScreen(),
       ),
-      GoRoute(
-        path: "/all-photos",
-        name: "all-photos",
-        builder: (context, state) => const AllPhotosScreen(),
-      ),
+      // GoRoute(
+      //   path: "/all-photos",
+      //   name: "all-photos",
+      //   builder: (context, state) => const AllPhotosScreen(),
+      // ),
       GoRoute(
         path: "/all-documents",
         name: "all-documents",
@@ -88,8 +89,17 @@ final router = Provider<GoRouter>((ref) {
           return ResetPasswordScreen(token: token);
         },
       ),
+      GoRoute(
+        path: '/add-employee',
+        builder: (context, state) => const AddEmployeeScreen(),
+        // builder: (context, state) => const SignUpScreen(),
+      ),
       // المسار الرئيسي الافتراضي يوجه للوجن (كاحتياط)
       GoRoute(path: "/", builder: (context, state) => const LogInScreen()),
+      GoRoute(
+        path: '/admin-dashboard',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
     ],
   );
 });

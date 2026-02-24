@@ -27,3 +27,14 @@ export const protect = async (req, res, next) => {
     return res.status(401).json({ message: 'غير مصرح لك، لا يوجد توكن' });
   }
 };
+
+//----------------------------------------------------------------------------//
+
+export const adminOnly = (req, res, next) => {
+    // req.user يأتي من ميدل وير الـ protect السابق
+    if (req.user && req.user.isAdmin) {
+        next(); // إذا كان مديراً، يسمح له بالمرور
+    } else {
+        res.status(403).json({ message: "خطأ: هذه الصلاحية للمدير فقط!" });
+    }
+};

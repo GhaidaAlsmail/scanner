@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt';
 import User from '../users/user.model.js';
 import { sendVerificationEmail } from '../../utils/sendVerificationEmail.js';
 import nodemailer from 'nodemailer';
+import { protect, adminOnly } from '../../middleware/auth.middleware.js'; // الميدل وير للحماية
+
 
 export const register = async (req, res) => {
   const { password, ...userData } = req.body;
@@ -189,4 +191,29 @@ export const getMe = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+// src/modules/auth/auth.controller.js
+
+export const addEmployee = async (req, res) => {
+    try {
+        const { name, email, password, city } = req.body;
+
+        const userExists = await User.findOne({ email });
+        if (userExists) return res.status(400).json({ message: "الموظف موجود مسبقاً" });
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        await User.create({
+            name,
+            email,
+            passwordHash,
+            city,
+            isAdmin: false
+        });
+
+        res.status(201).json({ message: "تم إنشاء حساب الموظف بنجاح" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

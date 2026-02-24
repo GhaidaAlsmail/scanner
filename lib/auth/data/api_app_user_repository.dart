@@ -22,7 +22,7 @@ class ApiAppUserRepository implements AppUserRepository {
     final token = prefs.getString('token');
 
     return {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=UTF-8',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }

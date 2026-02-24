@@ -15,64 +15,96 @@ if (!fs.existsSync(uploadDir)) {
 
 const storage = diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/pdfs/'); // تأكدي أن هذا المجلد موجود يدوياً أو برمجياً
+        // استلام المنطقة من جسم الطلب (req.body)
+        const region = req.body.region || 'General'; 
+        const dir = `uploads/pdfs/${region}`;
+
+        // إنشاء المجلد إذا لم يكن موجوداً (التخزين حسب المنطقة)
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
     },
     filename: (req, file, cb) => {
-        // إضافة timestamp لتجنب تكرار الأسماء
-        // const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null,  file.originalname); 
+        // فك تشفير الاسم العربي لضمان حفظه بشكل صحيح على القرص
+        const correctedName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        cb(null, `${correctedName}`);
     }
 });
-// const storage = diskStorage({
-//     destination: './uploads/pdfs/',
-//     filename: (req, file, cb) => {
-//         cb(null, file.originalname); 
-//     }
-// });
 const upload = multer({ storage });
+//------------------------------------------------------------------------------------//
 
-router.post('/upload-pdf', protect, upload.single('pdf'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-        const newPdf = new Document({
-            user: req.user.id,
-            pdfPath: `/uploads/pdfs/${req.file.filename}`,
-            title: req.body.title || "Document"
-        });
-        await newPdf.save();
-        res.status(201).json(newPdf);
-    } catch (error) {
-        res.status(500).json({ message: "Error saving PDF" });
-    }
-});
-
-// راوت جلب كل مستندات المستخدم
 router.get('/all', protect, async (req, res) => {
     try {
-        const docs = await Document.find({ user: req.user.id }).sort({ createdAt: -1 });
-        res.json(docs);
+        // 1. استخراج رقم الصفحة والحد من الطلب (Query Params)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // 2. جلب الملفات الخاصة بالمستخدم مع الترتيب والتقسيم
+        const docs = await Document.find({ user: req.user.id })
+            .sort({ createdAt: -1 }) // الأحدث أولاً
+            .skip(skip)
+            .limit(limit);
+
+        // 3. حساب العدد الكلي للملفات لمعرفة عدد الصفحات
+        const totalDocs = await Document.countDocuments({ user: req.user.id });
+        const totalPages = Math.ceil(totalDocs / limit);
+
+        res.json({
+            docs,
+            meta: {
+                totalDocs,
+                totalPages,
+                currentPage: page,
+                hasNextPage: page < totalPages
+            }
+        });
     } catch (err) {
         res.status(500).json({ message: "خطأ في جلب البيانات" });
     }
 });
 
-// 2. جلب كل الصور للمستخدم الحالي
-router.get('/all', protect, async (req, res) => {
-  try {
-     const photos = await Photo.find({ user: req.user.id }).lean(); 
-    
-    res.status(200).json({
-      status: 'success',
-      photos: photos 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'خطأ في جلب الصور', error: error.message });
-  }
+//------------------------------------------------------------------------------------//
+
+router.post('/upload-pdf', protect, upload.single('pdf'), async (req, res) => {
+    try {
+        const { title, region } = req.body;
+        const correctedFileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+        
+        // استخدام العنوان المرسل أو اسم الملف الأصلي
+        const finalTitle = title || correctedFileName;
+
+        // 1. فحص هل الاسم موجود مسبقاً في قاعدة البيانات لنفس المنطقة؟
+        const existingDoc = await Document.findOne({ 
+            title: finalTitle, 
+            region: region,
+            user: req.user.id 
+        });
+
+        if (existingDoc) {
+            // إذا وجدنا ملف بنفس الاسم، نحذف الملف الذي رفعه multer الآن لكي لا يملأ الذاكرة
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ message: "يوجد ملف مرفوع مسبقاً بهذا الاسم في هذه المنطقة" });
+        }
+
+        const newDoc = new Document({
+            user: req.user.id,
+            title: finalTitle,
+            region: region,
+            pdfPath: req.file.path, // هنا سيكون المسار الفريد (الذي يحتوي على الأرقام)
+            createdBy: req.user.id
+        });
+
+        await newDoc.save();
+        res.status(201).json(newDoc);
+    } catch (error) {
+        // في حال حدوث خطأ، نحذف الملف المرفوع أيضاً
+        if (req.file) fs.unlinkSync(req.file.path);
+        res.status(500).json({ message: error.message });
+    }
 });
-
-
-
+//------------------------------------------------------------------------------------//
 // راوت حذف مستند PDF
 router.delete('/:id', protect, async (req, res) => {
     try {
@@ -90,7 +122,7 @@ router.delete('/:id', protect, async (req, res) => {
             
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
-                console.log(`✅ تم حذف ملف PDF: ${filePath}`);
+                console.log(` تم حذف ملف PDF: ${filePath}`);
             }
         }
 
@@ -103,4 +135,6 @@ router.delete('/:id', protect, async (req, res) => {
         res.status(500).json({ message: "خطأ في السيرفر أثناء حذف المستند" });
     }
 });
+
+//------------------------------------------------------------------------------------//
 export default router;
