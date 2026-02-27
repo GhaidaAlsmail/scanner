@@ -6,6 +6,7 @@ import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,6 +55,8 @@ class PhotosServices {
     required List<File> imageFiles,
     required String docTitle,
     required String region,
+    required String subArea,
+    required String id,
   }) async {
     try {
       final baseUrl = await getDynamicBaseUrl();
@@ -72,33 +75,14 @@ class PhotosServices {
       for (var file in imageFiles) {
         if (await file.exists()) {
           final image = pw.MemoryImage(file.readAsBytesSync());
-          //   pdf.addPage(
-          //     pw.Page(
-          //       // استخدام تنسيق A3 مع هوامش بسيطة
-          //       pageFormat: PdfPageFormat.a3,
-          //       build: (pw.Context context) {
-          //         return pw.FullPage(
-          //           ignoreMargins: true,
-          //           child: pw.Center(
-          //             child: pw.Image(image, fit: pw.BoxFit.contain, dpi: 300),
-          //           ),
-          //         );
-          //       },
-          //     ),
-          //   );
           pdf.addPage(
             pw.Page(
-              // تحديد القياس A3 للمصنفات الكبيرة
               pageFormat: PdfPageFormat.a3,
               build: (pw.Context context) {
                 return pw.FullPage(
-                  ignoreMargins: true, // إلغاء الحواف لاستغلال المساحة كاملة
+                  ignoreMargins: true,
                   child: pw.Center(
-                    child: pw.Image(
-                      image,
-                      fit: pw.BoxFit.contain, // يضمن ظهور المصنف كاملاً دون قص
-                      dpi: 400, // رفع الكثافة النقطية لأن الورقة كبيرة (A3)
-                    ),
+                    child: pw.Image(image, fit: pw.BoxFit.contain, dpi: 400),
                   ),
                 );
               },
@@ -113,37 +97,35 @@ class PhotosServices {
       final tempFile = File("${tempDir.path}/pdf_$timestamp.pdf");
       await tempFile.writeAsBytes(await pdf.save());
 
-      // 3. تجهيز FormData
-      // ملاحظة: تأكدي أن أسماء الحقول (title, region, pdf) تطابق ما يتوقعه السيرفر
+      // 3. تجهيز FormData (إضافة subArea هنا)
       FormData formData = FormData.fromMap({
-        "title": docTitle,
         "region": region,
+        "subArea": subArea,
+        "id": id,
+        "title": docTitle,
         "pdf": await MultipartFile.fromFile(
           tempFile.path,
           filename: "$docTitle.pdf",
         ),
       });
 
-      // 4. إرسال الطلب مع ترويسة المصادقة
+      // 4. إرسال الطلب
       final response = await _dio.post(
         '$baseUrl/documents/upload-pdf',
         data: formData,
         options: Options(
           headers: {
-            "Authorization": "Bearer $token", // مفتاح حل مشكلة الـ 401
+            "Authorization": "Bearer $token",
             "Accept": "application/json",
           },
-          // منع Dio من رمي Exception تلقائياً في حالات الـ 401 للتعامل معها يدوياً
           validateStatus: (status) => status! < 500,
         ),
       );
 
       debugPrint("Server Status Code: ${response.statusCode}");
-      debugPrint("Server Response Body: ${response.data}");
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        debugPrint("تم الرفع بنجاح للمنطقة: $region");
-        // تنظيف الملف المؤقت
+        debugPrint("تم الرفع بنجاح: $region -> $subArea");
         if (await tempFile.exists()) await tempFile.delete();
       } else if (response.statusCode == 401) {
         throw Exception("غير مصرح لك بالعملية، يرجى تسجيل الدخول مجدداً");
@@ -153,16 +135,13 @@ class PhotosServices {
         );
       }
     } on DioException catch (e) {
-      debugPrint("Dio Error Type: ${e.type}");
-      debugPrint("Dio Error Response: ${e.response?.data}");
       throw Exception("خطأ في الاتصال بالسيرفر: ${e.message}");
     } catch (e) {
-      debugPrint("General Error: $e");
       rethrow;
     }
   }
 
-  //----------------------------------------------------------------------------//
+  // //----------------------------------------------------------------------------//
   // 3. إظهار خيارات التقاط الصورة
   Future<void> showImagePicker(BuildContext context, WidgetRef ref) async {
     showModalBottomSheet(
@@ -195,7 +174,6 @@ class PhotosServices {
   }
   //----------------------------------------------------------------------------//
   // 4. جلب المستندات
-  // photos_service.dart
 
   Future<Map<String, dynamic>> fetchDocuments({required int page}) async {
     try {
@@ -214,8 +192,8 @@ class PhotosServices {
       throw Exception("فشل تحميل البيانات: $e");
     }
   }
-  //----------------------------------------------------------------------------//
 
+  //----------------------------------------------------------------------------//
   // 5. حذف مستند
   Future<void> deleteDocument(String id) async {
     try {
@@ -231,22 +209,59 @@ class PhotosServices {
       throw Exception("خطأ في حذف المستند");
     }
   }
+
+  //----------------------------------------------------------------------------//
+  // ---  دالة التعديل   ---
+  Future<void> updateDocumentFile({
+    required String docId,
+    File? newFile,
+    required String newTitle,
+    required String region,
+    required String subArea,
+  }) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final url = "$baseUrl/pdf/update-pdf/$docId";
+
+      debugPrint("➜ Attempting Update at: $url");
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      var request = http.MultipartRequest('PUT', Uri.parse(url));
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.fields['title'] = newTitle;
+      request.fields['region'] = region;
+      request.fields['subArea'] = subArea;
+
+      if (newFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'pdf',
+            newFile.path,
+            filename: "$newTitle.pdf",
+          ),
+        );
+      }
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        debugPrint(" Update Successful");
+      } else {
+        debugPrint(" Server Error Status: ${response.statusCode}");
+        throw Exception('فشل التحديث: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint(" Exception in updateDocumentFile: $e");
+      rethrow;
+    }
+  }
+
+  //----------------------------------------------------------------------------//
 }
-
-//----------------------------------------------------------------------------//
-// void _openPdf(String pdfPath, String title) {
-//   String fullUrl = "$baseUrl/${pdfPath.replaceAll('\\', '/')}";
-
-//   Navigator.push(
-//     context,
-//     MaterialPageRoute(
-//       builder: (context) => Scaffold(
-//         appBar: AppBar(title: Text(title)),
-//         body: SfPdfViewer.network(
-//           fullUrl,
-//           headers: {"Authorization": "Bearer $token"}, // إذا كان المجلد محمياً
-//         ),
-//       ),
-//     ),
-//   );
-// }

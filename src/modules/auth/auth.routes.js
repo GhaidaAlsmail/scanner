@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { login, register, forgotPassword, resendVerificationEmail, verifyEmail, getMe,resetPassword,addEmployee } from './auth.controller.js';
-// import { forgotPassword, resetPassword } from './auth.controller.js';
 import { protect,adminOnly } from '../../middleware/auth.middleware.js';
 
 const router = Router();
@@ -15,17 +14,3 @@ router.patch('/reset-password/:token', resetPassword);
 router.post('/add-employee', protect, adminOnly, addEmployee);
 export default router;
 
-//////////////////////////////////////////try dont delete XXXXXXX ///////////////////////////
-
-// import { Router } from 'express';
-// import { login, register, forgotPassword, resendVerificationEmail, verifyEmail } from './auth.controller.js';
-
-// const router = Router();
-
-// router.post('/register', register);
-// router.post('/login', login);
-// router.post('/forgot-password', forgotPassword);
-// router.post('/resend-verification', resendVerificationEmail);
-// router.post('/verify-email', verifyEmail);
-
-// export default router;

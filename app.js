@@ -12,36 +12,60 @@ import documentRoutes from './src/modules/documents/routes/documents.routes.js';
 dotenv.config();
 await connectDB();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
+
 app.use('/uploads', (req, res, next) => {
-    req.url = decodeURIComponent(req.url);
-    next();
+    try {
+        req.url = decodeURIComponent(req.url);
+        next();
+    } catch (e) {
+        next();
+    }
 }, express.static(path.join(process.cwd(), 'uploads')));
-// app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+app.use('/pdfs', (req, res, next) => {
+    try {
+        req.url = decodeURIComponent(req.url);
+        next();
+    } catch (e) {
+        next();
+    }
+}, express.static(path.join(process.cwd(), 'pds')));
+
 app.use(cors());
 
-app.use(express.json({ limit: '1000mb' })); 
-app.use(express.urlencoded({ extended: true, limit: '1000mb', parameterLimit: 50000 }));
+// رفع الحد ليتناسب مع ملفات الـ PDF الكبيرة (A3)
+app.use(express.json({ limit: '100mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '100mb', parameterLimit: 50000 }));
 
-app.use((req, res, next) => {
+app.use('/api', (req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 }); 
 
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// // الروابط (Routes)
+// app.use('/api/auth', authRoutes);
+// app.use('/api/users', userRoutes);
+// app.use('/api/photos', photoRoutes); 
+// app.use('/api/documents', documentRoutes);
+app.use('/uploads/pdfs', (req, res, next) => {
+    try {
+        req.url = decodeURIComponent(req.url);
+        next();
+    } catch (e) { next(); }
+}, express.static(path.join(process.cwd(), 'uploads/pdfs')));
 
+// الروابط (Routes)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/photos', photoRoutes); 
 app.use('/api/documents', documentRoutes);
-
 const PORT = process.env.PORT || 3006;
 
+// معالجة الأخطاء
 app.use((err, req, res, next) => {
   const statusCode = err.status || 500;
+  console.error("Global Error Handler:", err.message);
   res.status(statusCode).json({
     message: err.message || 'حدث خطأ غير متوقع في السيرفر',
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
@@ -49,5 +73,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
+  console.log(`🚀 Server running on port ${PORT}`)
 );

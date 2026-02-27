@@ -3,10 +3,11 @@ import mongoosePaginate from 'mongoose-paginate-v2';
 
 const documentSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    
     title: { type: String, required: true },
     pdfPath: { type: String, required: true },
     region: { type: String, required: true, index: true }, 
+    subArea: { type: String, required: true, index: true },
+    id: { type: String, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
 });

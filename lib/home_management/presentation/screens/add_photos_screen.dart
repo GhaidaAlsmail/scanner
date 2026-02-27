@@ -1,5 +1,4 @@
 // ignore_for_file: deprecated_member_use
-
 import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
@@ -25,9 +24,13 @@ class AddPhotosScreen extends ConsumerWidget {
     final bool isAdmin = currentUser?.isAdmin ?? false;
     final String userName = currentUser?.name ?? "مستخدم غير معروف";
 
+    // جلب بيانات المناطق
+    final areasAsyncValue = ref.watch(areasDataProvider);
+
     if (form.control('name').value == null) {
       form.control('name').patchValue(userName);
     }
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       extendBodyBehindAppBar: true,
@@ -51,12 +54,10 @@ class AddPhotosScreen extends ConsumerWidget {
               "assets/images/logo.png",
               cacheWidth: 400,
               filterQuality: FilterQuality.low,
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withOpacity(0.4),
               colorBlendMode: BlendMode.modulate,
             ),
           ),
-
-          // 2. طبقة المحتوى
           SafeArea(
             child: ReactiveForm(
               formGroup: form,
@@ -65,115 +66,37 @@ class AddPhotosScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    const Gap(30),
-
-                    // --- قسم التقاط الصورة الذكي ---
+                    // const Gap(30),
                     _buildImageSection(context, ref, selectedImages),
+                    const Gap(20),
 
-                    const Gap(30),
-
-                    // --- حقول الإدخال ---
                     ReactiveTextInputWidget(
                       hint: 'العنوان'.i18n,
                       controllerName: 'head',
                       inputStyle: InputStyle.outlined,
                     ),
-                    const Gap(20),
-                    // --- حقل اسم الموظف (قائمة منسدلة تحتوي على اسم صاحب الحساب فقط) ---
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "الموظف المسؤول".i18n,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const Gap(5),
-                        ReactiveDropdownField<String>(
-                          formControlName: 'name',
-                          hint: Text('اختر الاسم'.i18n),
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 15,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            filled: true,
-                            fillColor: Theme.of(context).colorScheme.surface,
-                          ),
-                          items: [
-                            DropdownMenuItem(
-                              value: userName,
-                              child: Text(userName),
-                            ),
-                          ],
-                        ),
-                      ],
+                    const Gap(5),
+
+                    // --- قسم الموظف المسؤول ---
+                    _buildEmployeeDropdown(context, userName),
+
+                    // const Gap(5),
+                    areasAsyncValue.when(
+                      data: (areasData) =>
+                          _buildAreaSelectors(context, form, areasData),
+                      loading: () => const CircularProgressIndicator(),
+                      error: (err, _) => Text("خطأ في تحميل البيانات: $err"),
                     ),
+
                     const Gap(15),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "المنطقة المختارة".i18n,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const Gap(5),
-                        ReactiveDropdownField<String>(
-                          formControlName: 'region',
-                          hint: Text('اختر المنطقة'.i18n),
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 15,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            filled: true,
-                            fillColor: Theme.of(context).colorScheme.surface,
-                          ),
-                          items:
-                              [
-                                    "دمشق",
-                                    "حمص",
-                                    "حلب",
-                                    "اللاذقية",
-                                    "طرطوس",
-                                    "حماة",
-                                  ]
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
-                        ),
-                      ],
-                    ),
-                    Gap(15),
                     ReactiveTextInputWidget(
                       hint: 'تفاصيل وملاحظات'.i18n,
                       controllerName: 'details',
                       inputStyle: InputStyle.outlined,
                     ),
-
-                    const Gap(25),
-
-                    // --- أزرار العمليات ---
+                    const Gap(15),
                     _buildActionButtons(context, ref, form, selectedImages),
-
-                    const Gap(20),
-
-                    // --- أزرار الانتقال ---
+                    const Gap(15),
                     _buildNavigationButtons(context, isAdmin),
                   ],
                 ),
@@ -182,6 +105,136 @@ class AddPhotosScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // دالة بناء المربعات المنسدلة للمناطق
+  Widget _buildAreaSelectors(
+    BuildContext context,
+    FormGroup form,
+    Map<String, dynamic> areasData,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "التصنيف الرئيسي".i18n,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const Gap(5),
+        ReactiveDropdownField<String>(
+          formControlName: 'mainCategory',
+          hint: Text('اختر التصنيف'.i18n),
+          decoration: _inputDecoration(context),
+          items: areasData.keys.map((key) {
+            return DropdownMenuItem<String>(
+              value: key,
+              child: Text(areasData[key]['label']),
+            );
+          }).toList(),
+          onChanged: (control) => form.control('subArea').reset(),
+        ),
+        const Gap(15),
+        ReactiveValueListenableBuilder<String>(
+          formControlName: 'mainCategory',
+          builder: (context, control, child) {
+            final String? selectedKey = control.value;
+            List<dynamic> subAreas = [];
+            if (selectedKey != null && areasData.containsKey(selectedKey)) {
+              subAreas = areasData[selectedKey]['subAreas'];
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "المنطقة الفرعية".i18n,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const Gap(5),
+                ReactiveDropdownField<String>(
+                  formControlName: 'subArea',
+                  hint: Text('اختر المنطقة'.i18n),
+                  decoration: _inputDecoration(context),
+                  items: subAreas.map((area) {
+                    return DropdownMenuItem<String>(
+                      value: area['name'].toString(),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(area['name']),
+                          Text(
+                            " - ${area['id'] ?? 'N/A'}", // عرض الرقم
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.6),
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (control) {
+                    // 1. نبحث عن كائن المنطقة الذي يطابق الاسم المختار
+                    final selectedAreaObject = subAreas.firstWhere(
+                      (element) => element['name'] == control.value,
+                      orElse: () => null,
+                    );
+
+                    // 2. إذا وجدناه، نقوم بتحديث حقل 'id' في الفورم بقيمة الـ id الحقيقية
+                    if (selectedAreaObject != null) {
+                      form
+                          .control('id')
+                          .patchValue(selectedAreaObject['id'].toString());
+                      debugPrint(
+                        "تم تحديث معرف المنطقة ليكون: ${selectedAreaObject['id']}",
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(BuildContext context) {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      filled: true,
+      fillColor: Theme.of(context).colorScheme.outlineVariant.withAlpha(22),
+    );
+  }
+
+  Widget _buildEmployeeDropdown(BuildContext context, String userName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "الموظف المسؤول".i18n,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const Gap(5),
+        ReactiveDropdownField<String>(
+          formControlName: 'name',
+          decoration: _inputDecoration(context),
+          items: [DropdownMenuItem(value: userName, child: Text(userName))],
+        ),
+      ],
     );
   }
 }
@@ -229,7 +282,6 @@ Widget _buildImageSection(
             )
           : Column(
               children: [
-                // زر لإضافة المزيد من اللقطات يظهر فوق الصور
                 Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
@@ -362,13 +414,14 @@ Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
       Row(
         children: [
           // Gap(15),
-          Expanded(
-            child: ButtonWidget(
-              text: "عرض ملفات PDF".i18n,
-              onTap: () => context.push('/all-documents'),
+          if (!isAdmin)
+            Expanded(
+              child: ButtonWidget(
+                text: "عرض ملفات PDF".i18n,
+                onTap: () => context.push('/all-documents'),
+              ),
             ),
-          ),
-          Gap(15),
+          // Gap(15),
           if (isAdmin)
             Expanded(
               child: ButtonWidget(
@@ -376,22 +429,12 @@ Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
                 onTap: () => context.push('/admin-dashboard'),
               ),
             ),
-          // if (isAdmin) ...[
-          //   const Gap(15),
-          //   Expanded(
-          //     child: ButtonWidget(
-          //       text: "إضافة موظف جديد".i18n,
-          //       onTap: () => context.push('/add-employee'),
-          //     ),
-          //   ),
-          // ],
         ],
       ),
     ],
   );
 }
 
-// 3.  دالة _handleUpload لترسل المنطقة:
 Future<void> _handleUpload(
   BuildContext context,
   WidgetRef ref,
@@ -412,25 +455,32 @@ Future<void> _handleUpload(
     BotToast.showText(text: 'يرجى اختيار الموظف المسؤول');
     return;
   }
-  // التحقق من اختيار المنطقة
-  if (form.control('region').value == null) {
-    BotToast.showText(text: 'يرجى اختيار المنطقة أولاً');
+
+  if (form.control('mainCategory').value == null ||
+      form.control('subArea').value == null) {
+    BotToast.showText(text: 'يرجى اختيار التصنيف والمنطقة');
     return;
   }
 
   try {
     BotToast.showLoading();
 
+    String mainLabel = form.control('mainCategory').value == 'city'
+        ? "حمص - المدينة"
+        : "ريف حمص";
+
     await ref
         .read(photosServicesProvider)
         .generateAndUploadPdfFromFiles(
           imageFiles: images,
-          region: form.control('region').value,
+          region: mainLabel,
+          subArea: form.control('subArea').value,
           docTitle:
               form.control('head').value ??
               "Document_${DateTime.now().millisecondsSinceEpoch}",
+          id: form.control('id').value,
         );
-
+    print("Sending ID: ${form.control('id').value}");
     BotToast.showText(text: 'تم إنشاء ورفع ملف PDF بنجاح'.i18n);
     ref.read(selectedImagesListProvider.notifier).state = [];
     form.reset();

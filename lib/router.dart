@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:scanner/admin/screens/add_employee_screen.dart';
 import 'package:scanner/admin/screens/admin_control_page.dart';
+import 'package:scanner/admin/screens/edit_documents_screen.dart';
 import 'package:scanner/auth/presentation/screens/reset_passwords.dart';
 import 'package:scanner/home_management/presentation/screens/all_documents_screen.dart';
 import 'auth/application/auth_notifier_provider.dart' show authNotifierProvider;
@@ -92,13 +93,24 @@ final router = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/add-employee',
         builder: (context, state) => const AddEmployeeScreen(),
-        // builder: (context, state) => const SignUpScreen(),
       ),
-      // المسار الرئيسي الافتراضي يوجه للوجن (كاحتياط)
       GoRoute(path: "/", builder: (context, state) => const LogInScreen()),
       GoRoute(
         path: '/admin-dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/manage-documents',
+        builder: (context, state) => const AllDocumentsScreen(),
+      ),
+      GoRoute(
+        path: '/edit-document',
+        builder: (context, state) {
+          final doc =
+              state.extra
+                  as Map<String, dynamic>; // استلام بيانات المستند الممررة
+          return EditDocumentScreen(doc: doc);
+        },
       ),
     ],
   );

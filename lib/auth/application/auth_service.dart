@@ -28,30 +28,6 @@ class AuthService {
     await prefs.setString('server_ip', newIp);
   }
 
-  // /// LOGIN
-  // Future<AppUser> login({
-  //   required String email,
-  //   required String password,
-  // }) async {
-  //   final baseUrl = await getDynamicBaseUrl();
-
-  //   final res = await http.post(
-  //     Uri.parse('$baseUrl/auth/login'),
-  //     headers: {'Content-Type': 'application/json'},
-  //     body: jsonEncode({'email': email, 'password': password}),
-  //   );
-
-  //   if (res.statusCode != 200) {
-  //     throw Exception('Login failed');
-  //   }
-
-  //   final data = jsonDecode(res.body);
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setString('token', data['token']);
-
-  //   return AppUser.fromJson(data['user']);
-  // }
-
   /// REGISTER
   Future<void> register({
     required AppUser user,
