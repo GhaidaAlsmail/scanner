@@ -156,7 +156,7 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
           .toList();
       return _buildFolderList(
         regions,
-        Icons.location_city,
+        Icons.folder_shared,
         const Color.fromARGB(255, 237, 201, 122),
         (val) {
           setState(() => selectedRegion = val);
@@ -222,39 +222,44 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
   }) {
     if (docs.isEmpty) return const Center(child: Text("لا توجد ملفات"));
 
-    return ListView.builder(
-      itemCount: docs.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == docs.length) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return RefreshIndicator(
+      onRefresh: _refreshDocuments,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        controller: _scrollController,
+        itemCount: docs.length + (isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == docs.length) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final doc = docs[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          child: ListTile(
-            leading: Icon(
-              Icons.picture_as_pdf,
-              color: Theme.of(context).colorScheme.primary,
-              size: 40,
+          final doc = docs[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: ListTile(
+              leading: Icon(
+                Icons.picture_as_pdf,
+                color: Theme.of(context).colorScheme.primary,
+                size: 40,
+              ),
+              title: Text(
+                doc['title'] ?? 'بدون عنوان',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                isSearchMode
+                    ? "المسار: ${doc['region']} > ${doc['subArea']}\nالمعرف: ${doc['id']}"
+                    : "المعرف: ${doc['id']} | ${doc['createdAt'].toString().substring(0, 10)}",
+                style: const TextStyle(fontSize: 12),
+              ),
+              trailing: isAdmin
+                  ? _buildAdminActions(doc)
+                  : const Icon(Icons.open_in_new, size: 18),
+              onTap: () => _openPdf(doc['pdfPath']),
             ),
-            title: Text(
-              doc['title'] ?? 'بدون عنوان',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              isSearchMode
-                  ? "المسار: ${doc['region']} > ${doc['subArea']}\nالمعرف: ${doc['id']}"
-                  : "المعرف: ${doc['id']} | ${doc['createdAt'].toString().substring(0, 10)}",
-              style: const TextStyle(fontSize: 12),
-            ),
-            trailing: isAdmin
-                ? _buildAdminActions(doc)
-                : const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openPdf(doc['pdfPath']),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -267,7 +272,10 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
             Icons.edit_note,
             color: Theme.of(context).colorScheme.primary,
           ),
-          onPressed: () => context.push('/edit-document', extra: doc),
+          onPressed: () async => {
+            await context.push('/edit-document', extra: doc),
+            _refreshDocuments(),
+          }, //context.push('/edit-document', extra: doc),
         ),
         IconButton(
           icon: Icon(
@@ -330,6 +338,15 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _refreshDocuments() async {
+    setState(() {
+      documents.clear();
+      currentPage = 1;
+      hasNextPage = true;
+    });
+    await _loadMore();
   }
 
   Future<void> _deleteDoc(String id) async {

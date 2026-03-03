@@ -23,15 +23,25 @@ class EditDocumentScreen extends ConsumerStatefulWidget {
 class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
   List<File> _pagesAsImages = [];
   bool _isExtracting = true;
-  // final ImagePicker _picker = ImagePicker();
+
+  // 1. تعريف المتحكم
+  late TextEditingController _titleController;
 
   @override
   void initState() {
     super.initState();
+    // 2. تهيئة المتحكم بالاسم الحالي للمستند
+    _titleController = TextEditingController(text: widget.doc['title'] ?? "");
     _convertPdfToImages();
   }
 
-  /// 1. دالة تحميل الـ PDF من السيرفر وتحويل كل صفحة فيه إلى صورة File
+  @override
+  void dispose() {
+    // 3. تنظيف المتحكم عند إغلاق الشاشة
+    _titleController.dispose();
+    super.dispose();
+  }
+
   Future<void> _convertPdfToImages() async {
     try {
       setState(() => _isExtracting = true);
@@ -42,7 +52,7 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
       // 1. الحصول على المسار الخام
       String rawPath = widget.doc['pdfPath'] ?? "";
 
-      // 2. تصحيح الميول (تحويل \ إلى /) - هذا هو السطر السحري
+      // 2. تصحيح الميول (تحويل \ إلى /)
       rawPath = rawPath.replaceAll(r'\', '/');
 
       // 3. التأكد من البداية بـ /
@@ -60,25 +70,6 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
       if (response.statusCode != 200) {
         throw Exception("الملف غير موجود (404) - تأكد من المسار على السيرفر");
       }
-
-      // String baseUrl = await getDynamicBaseUrl();
-
-      // baseUrl = baseUrl.replaceAll('/api', '');
-
-      // String rawPath = widget.doc['pdfPath'] ?? "";
-      // if (!rawPath.startsWith('/')) {
-      //   rawPath = '/$rawPath';
-      // }
-
-      // final String fullUrl = Uri.encodeFull("$baseUrl$rawPath");
-      // debugPrint("Fetching PDF from: $fullUrl");
-
-      // // 4. طلب الملف من السيرفر
-      // final response = await http.get(Uri.parse(fullUrl));
-
-      // if (response.statusCode != 200) {
-      //   throw Exception("خطأ في السيرفر: ${response.statusCode}");
-      // }
 
       // 5. تفكيك الملف باستخدام pdfr
       final document = await pdfr.PdfDocument.openData(response.bodyBytes);
@@ -117,42 +108,30 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
     }
   }
 
-  /// 2. دالة فتح الكاميرا لإضافة صورة جديدة للمستند
-  // Future<void> _addNewPhoto() async {
-  //   final XFile? photo = await _picker.pickImage(
-  //     source: ImageSource.camera,
-  //     imageQuality: 80,
-  //   );
-  //   if (photo != null) {
-  //     setState(() {
-  //       _pagesAsImages.add(File(photo.path));
-  //     });
-  //   }
-  // }
-
-  /// 3. دالة تجميع الصور المتبقية والجديدة في ملف PDF واحد ورفعه
   Future<void> _saveNewPdf() async {
     if (_pagesAsImages.isEmpty) {
       BotToast.showText(text: "لا يمكن حفظ مستند فارغ");
       return;
     }
 
+    // التحقق من أن الاسم ليس فارغاً
+    if (_titleController.text.trim().isEmpty) {
+      BotToast.showText(text: "يرجى إدخال اسم للمستند");
+      return;
+    }
+
     try {
       BotToast.showLoading();
-
       final pdf = pw.Document();
       for (var imageFile in _pagesAsImages) {
         final image = pw.MemoryImage(imageFile.readAsBytesSync());
-
         pdf.addPage(
           pw.Page(
             pageFormat: pdf_info.PdfPageFormat.a4,
-            build: (pw.Context context) {
-              return pw.FullPage(
-                ignoreMargins: true,
-                child: pw.Image(image, fit: pw.BoxFit.contain),
-              );
-            },
+            build: (pw.Context context) => pw.FullPage(
+              ignoreMargins: true,
+              child: pw.Image(image, fit: pw.BoxFit.contain),
+            ),
           ),
         );
       }
@@ -163,7 +142,7 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
       );
       await file.writeAsBytes(await pdf.save());
 
-      // إرسال الملف الجديد للسيرفر عبر الـ Service
+      // 4. إرسال الاسم الجديد (newTitle) من الـ Controller
       await ref
           .read(photosServicesProvider)
           .updateDocumentFile(
@@ -171,11 +150,11 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
             region: widget.doc['region'],
             subArea: widget.doc['subArea'],
             newFile: file,
-            newTitle: widget.doc['title'] ?? "مستند معدل",
+            newTitle: _titleController.text.trim(),
           );
-
+      // ref.invalidate(photosServicesProvider);
       BotToast.closeAllLoading();
-      BotToast.showText(text: "تم تحديث المستند بنجاح");
+      BotToast.showText(text: "تم تحديث المستند والاسم بنجاح");
       Navigator.pop(context);
     } catch (e) {
       BotToast.closeAllLoading();
@@ -185,7 +164,6 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ref.read(photosServicesProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text("تعديل محتوى المستند"),
@@ -197,98 +175,144 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
         ],
       ),
       body: _isExtracting
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 10),
-                  Text("جاري تفكيك المستند إلى صور..."),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _pagesAsImages.length + 1,
-              itemBuilder: (context, index) {
-                // الخلية الأخيرة لإضافة صورة جديدة
-                if (index == _pagesAsImages.length) {
-                  return InkWell(
-                    onTap: _addNewPhotoWithScanner, // _addNewPhoto,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // 5. حقل إدخال الاسم الجديد
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      labelText: "اسم المستند",
+                      hintText: "عدل اسم الملف هنا...",
+                      prefixIcon: const Icon(Icons.edit_document),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.blue,
-                          style: BorderStyle.solid,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.withOpacity(0.05),
+                    ),
+                  ),
+                ),
+                const Divider(),
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
                         ),
-                      ),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo, size: 40, color: Colors.blue),
-                          SizedBox(height: 5),
-                          Text(
-                            "إضافة صورة",
-                            style: TextStyle(color: Colors.blue),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                // عرض صفحات الـ PDF كصور مع زر الحذف
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        _pagesAsImages[index],
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: 5,
-                      right: 5,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => _pagesAsImages.removeAt(index));
-                        },
-                        child: const CircleAvatar(
-                          radius: 15,
-                          backgroundColor: Colors.red,
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                    itemCount: _pagesAsImages.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == _pagesAsImages.length) {
+                        return _buildAddPhotoButton();
+                      }
+                      return _buildImageCard(index);
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }
 
-  Future<void> _addNewPhotoWithScanner() async {
+  Widget _buildAddPhotoButton() {
+    return InkWell(
+      onTap: _addNewPhotoWithScanner,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.primary),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_a_photo,
+              size: 40,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const Text("إضافة صورة"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageCard(int index) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(_pagesAsImages[index], fit: BoxFit.cover),
+        ),
+        // زر الحذف
+        Positioned(
+          top: 5,
+          right: 5,
+          child: GestureDetector(
+            onTap: () {
+              setState(() => _pagesAsImages.removeAt(index));
+              _addNewPhotoWithScanner(
+                atIndex: index,
+              ); // سيفتح السكنر ويضع الصورة مكان المحذوفة
+            },
+            // onTap: () => setState(() => _pagesAsImages.removeAt(index)),
+            child: const CircleAvatar(
+              radius: 15,
+              backgroundColor: Colors.red,
+              child: Icon(Icons.close, color: Colors.white, size: 18),
+            ),
+          ),
+        ),
+        // زر التبديل
+        Positioned(
+          bottom: 5,
+          right: 5,
+          child: GestureDetector(
+            onTap: () async {
+              // 1. التقاط الصورة الجديدة وتحديد مكانها
+              await _addNewPhotoWithScanner(atIndex: index);
+              // 2. حذف الصورة القديمة التي كانت في هذا المكان
+              // (اختياري: إذا أردتِ أن تحل محلها تماماً)
+              if (_pagesAsImages.length > index + 1) {
+                setState(() => _pagesAsImages.removeAt(index + 1));
+              }
+            },
+            child: CircleAvatar(
+              radius: 15,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(
+                Icons.published_with_changes,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _addNewPhotoWithScanner({int? atIndex}) async {
     try {
-      // استخدام السكنر لالتقاط صور احترافية
       List<String>? pictures = await CunningDocumentScanner.getPictures();
 
       if (pictures != null && pictures.isNotEmpty) {
         setState(() {
-          // إضافة الصور الملتقطة إلى القائمة المحلية للشاشة
-          _pagesAsImages.addAll(pictures.map((path) => File(path)));
+          if (atIndex != null) {
+            _pagesAsImages.insertAll(
+              atIndex,
+              pictures.map((path) => File(path)),
+            );
+          } else {
+            _pagesAsImages.addAll(pictures.map((path) => File(path)));
+          }
         });
       }
     } catch (e) {

@@ -1,8 +1,11 @@
+// // ignore_for_file: deprecated_member_use
+
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:scanner/auth/presentation/components/enter_ip.dart';
 import 'package:scanner/core/presentation/widgets/button_widget.dart';
 import 'package:scanner/translation.dart';
 import 'package:reactive_forms/reactive_forms.dart';
@@ -10,7 +13,6 @@ import '../../../core/presentation/widgets/reactive_password_input_widget.dart';
 import '../../../core/presentation/widgets/reactive_text_input_widget.dart';
 import '../../application/auth_notifier_provider.dart';
 import '../../application/log_in_form_provider.dart';
-import '../components/enter_ip.dart';
 
 class LogInScreen extends ConsumerWidget {
   const LogInScreen({super.key});
@@ -42,21 +44,63 @@ class LogInScreen extends ConsumerWidget {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Gap(70),
                     GestureDetector(
                       onLongPress: () {
                         showIpSettingsDialog(context);
                       },
-                      child: Image.asset(
-                        'assets/images/splash.png',
-                        width: 250,
+                      child: Column(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "وزارة المالية",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  // fontWeight: FontWeight.bold,
+                                  fontFamily: "Cairo",
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              Gap(15),
+                              Text(
+                                "الهيئة العامة للضرائب والرسوم",
+                                style: TextStyle(
+                                  fontFamily: "Cairo",
+                                  fontSize: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.9),
+                                ),
+                              ),
+                              Gap(15),
+                              Text(
+                                "مـديرية المـالية في محافــظة حــمص",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontFamily: "Cairo",
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+                      //  Image.asset(
+                      //   'assets/images/splash.png',
+                      //   width: 250,
+                      // ),
                     ),
-                    const Gap(40),
+                    const Gap(100),
                     ReactiveTextInputWidget(
-                      hint: 'Email',
-                      controllerName: 'email',
+                      hint: 'Username'.i18n,
+                      controllerName: 'username',
                       textInputAction: TextInputAction.next,
                     ),
                     const Gap(40),
@@ -67,108 +111,60 @@ class LogInScreen extends ConsumerWidget {
                       textInputAction: TextInputAction.done,
                     ),
                     const Gap(60),
-                    // Align(
-                    //   alignment: AlignmentDirectional.centerEnd,
-                    //   child: ReactiveValueListenableBuilder<dynamic>(
-                    //     formControlName: "email",
-                    //     builder: (context, control, child) {
-                    //       return TextButtonWidget(
-                    //         foregroundColor: Theme.of(context).colorScheme.scrim,
-                    //         text: "Forgot Password?".i18n,
-                    //         onTap:
-                    //             (control.value == null ||
-                    //                 control.value.toString().isEmpty)
-                    //             ? () => BotToast.showText(
-                    //                 text: "يرجى كتابة البريد الإلكتروني أولاً",
-                    //               )
-                    //             : () async {
-                    //                 // تفعيل استدعاء إعادة تعيين كلمة المرور
-                    //                 await ref
-                    //                     .read(authNotifierProvider.notifier)
-                    //                     .resetPassword(control.value.toString());
-                    //               },
-                    //       );
-                    //     },
-                    //   ),
-                    // ),
-                    // const Gap(40),
-
-                    // // زر تسجيل الدخول (Sign In)
-                    // ReactiveFormConsumer(
-                    //   builder: (context, formGroup, child) {
-                    //     return ButtonWidget(
-                    //       text: "Sign in".i18n,
-                    //       onTap: formGroup.invalid
-                    //           ? null
-                    //           : () {
-                    //               var email = formGroup.control("email").value;
-                    //               var password = formGroup
-                    //                   .control("password")
-                    //                   .value;
-
-                    //               ref
-                    //                   .read(authNotifierProvider.notifier)
-                    //                   .login(email, password);
-                    //             },
-                    //     );
-                    //   },
-                    // ),
                     // زر تسجيل الدخول
                     ReactiveFormConsumer(
                       builder: (context, formGroup, child) {
-                        return ButtonWidget(
-                          text: "Sign in".i18n,
-                          onTap: formGroup.invalid
-                              ? null
-                              : () {
-                                  final email = formGroup
-                                      .control("email")
-                                      .value;
-                                  final password = formGroup
-                                      .control("password")
-                                      .value;
+                        return Center(
+                          child: ButtonWidget(
+                            text: "Sign in".i18n,
+                            onTap: formGroup.invalid
+                                ? null
+                                : () {
+                                    // final email = formGroup
+                                    //     .control("email")
+                                    //     .value;
+                                    final username = formGroup
+                                        .control("username")
+                                        .value;
+                                    final password = formGroup
+                                        .control("password")
+                                        .value;
 
-                                  ref
-                                      .read(authNotifierProvider.notifier)
-                                      .login(email, password);
-                                },
+                                    ref
+                                        .read(authNotifierProvider.notifier)
+                                        .login(username, password);
+                                  },
+                          ),
                         );
                       },
                     ),
-                    const Gap(170), // Gap(20),
-                    // ButtonWidget(
-                    //   text: "Resend Email Verification".i18n,
-                    //   onTap: () async {
-                    //     var email = form
-                    //         .control("email")
-                    //         .value; //  سحب الإيميل المكتوب في الحقل
-                    //     if (email != null && email.isNotEmpty) {
-                    //       await ref
-                    //           .read(authServiceProvider)
-                    //           .resendVerificationEmail(email: email);
-                    //     } else {
-                    //       BotToast.showText(
-                    //         text: "يرجى كتابة البريد الإلكتروني أولاً",
-                    //       );
-                    //     }
-                    //   },
-                    // ),
-                    // Gap(40),
-
-                    // Gap(170),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.center,
-                    //   children: [
-                    //     Text('- if you dont have an account - '.i18n),
-                    //     TextButtonWidget(
-                    //       text: "Register".i18n,
-                    //       onTap: () {
-                    //         context.push("/signup");
-                    //       },
-                    //       foregroundColor: Theme.of(context).colorScheme.scrim,
-                    //     ),
-                    //   ],
-                    // ),
+                    const Gap(170),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Gh.AlS   ",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: "Cairo",
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.9),
+                          ),
+                        ),
+                        Text(
+                          "version: 1.0.0+1 ",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: "Cairo",
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

@@ -90,15 +90,16 @@ flutter:
 
   assets:
     - assets/themes/
+    - assets/fonts/
     - assets/translations/
     - assets/images/
     - assets/svg/
     - assets/data/areas.json
 
   fonts:
-    - family: Rubik
+    - family: Cairo
       fonts:
-        - asset: assets/fonts/Rubik-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
 
 icons_launcher:
   image_path: "assets/images/icon.png"

@@ -9,10 +9,11 @@ part of 'app_user.dart';
 _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   id: json['_id'] as String?,
   name: json['name'] as String,
-  email: json['email'] as String,
+  email: json['email'] as String?,
   isAdmin: json['isAdmin'] as bool? ?? false,
   city: json['city'] as String?,
   notes: json['notes'] as String?,
+  username: json['username'] as String,
   password: json['password'] as String?,
   birthDate: json['birthDate'] == null
       ? null
@@ -32,6 +33,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'isAdmin': instance.isAdmin,
   'city': instance.city,
   'notes': instance.notes,
+  'username': instance.username,
   'birthDate': instance.birthDate?.toIso8601String(),
   'profilePictureUrl': instance.profilePictureUrl,
   'nickNames': instance.nickNames,

@@ -16,8 +16,8 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const result = await authService.login(email, password);
+    const { username, password } = req.body;
+    const result = await authService.login(username, password);
     res.json(result);
   } catch (e) {
     res.status(401).json({
@@ -27,7 +27,6 @@ export const login = async (req, res) => {
 };
 
 
-// داخل auth.controller.js
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -44,9 +43,6 @@ export const forgotPassword = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    // --- التعديل هنا لجعل الرابط ديناميكياً ---
-    // req.get('host') تجلب الـ IP والـ Port تلقائياً (مثلاً 192.168.1.5:3006)
-    // req.protocol تجلب http أو https تلقائياً
     const host = req.get('host');
     const protocol = req.protocol;
     const resetURL = `${protocol}://${host}/reset-password/${resetToken}`;
@@ -192,28 +188,106 @@ export const getMe = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// src/modules/auth/auth.controller.js
+
+
 
 export const addEmployee = async (req, res) => {
     try {
-        const { name, email, password, city } = req.body;
+        const { name, username, email, password, city, isAdmin } = req.body;
 
-        const userExists = await User.findOne({ email });
-        if (userExists) return res.status(400).json({ message: "الموظف موجود مسبقاً" });
+        
+        const userExists = await User.findOne({ username });
+        if (userExists) return res.status(400).json({ message: "اسم المستخدم موجود مسبقاً" });
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
         await User.create({
             name,
-            email,
+            username, 
+            email: email || ` `,
             passwordHash,
             city,
-            isAdmin: false
+            isVerified: true, 
+            isAdmin: isAdmin || false 
         });
 
         res.status(201).json({ message: "تم إنشاء حساب الموظف بنجاح" });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+// دالة جلب الموظفين
+export const getAllEmployees = async (req, res) => {
+    try {
+        const users = await User.find().select('-passwordHash');
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ message: "خطأ في جلب الموظفين" });
+    }
+};
+
+// export const updateEmployee = async (req, res) => {
+//     try {
+//         const { username, password, isAdmin } = req.body;
+//         const targetUser = await User.findById(req.params.id);
+//         const currentUser = await User.findById(req.user.id); // المدير الذي يقوم بالعملية حالياً
+
+//         if (!targetUser) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+//         // تحديث البيانات الأساسية (مسموح لكل المدراء)
+//         if (username) targetUser.username = username;
+//         if (password) {
+//             const salt = await bcrypt.genSalt(10);
+//             targetUser.passwordHash = await bcrypt.hash(password, salt);
+//         }
+//         const SUPER_ADMIN_EMAIL = "admin@top.com"; 
+
+//         if (typeof isAdmin !== 'undefined' && isAdmin !== targetUser.isAdmin) {
+//             if (currentUser.email === SUPER_ADMIN_EMAIL) {
+//                 targetUser.isAdmin = isAdmin;
+//             } else {
+//                 // إذا لم يكن المدير الخارق، نرفض تعديل الصلاحية ولكن نكمل تعديل الباقي
+//                 return res.status(403).json({ message: "ليس لديك صلاحية لتغيير رتبة المستخدمين" });
+//             }
+//         }
+
+//         await targetUser.save();
+//         res.json({ message: "تم التحديث بنجاح" });
+//     } catch (err) {
+//         res.status(500).json({ message: "خطأ في السيرفر" });
+//     }
+// };
+
+export const updateEmployee = async (req, res) => {
+    try {
+        const { name, username, password, isAdmin } = req.body; 
+        const targetUser = await User.findById(req.params.id);
+        const currentUser = await User.findById(req.user.id);
+
+        if (!targetUser) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+        if (name) targetUser.name = name; 
+        
+        if (username) targetUser.username = username;
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            targetUser.passwordHash = await bcrypt.hash(password, salt);
+        }
+
+        const SUPER_ADMIN_EMAIL = "manager@company.com"; 
+
+        if (typeof isAdmin !== 'undefined' && isAdmin !== targetUser.isAdmin) {
+            if (currentUser.email === SUPER_ADMIN_EMAIL) {
+                targetUser.isAdmin = isAdmin;
+            } else {
+                return res.status(403).json({ message: "ليس لديك صلاحية لتغيير رتبة المستخدمين" });
+            }
+        }
+
+        await targetUser.save();
+        res.json({ message: "تم التحديث بنجاح" });
+    } catch (err) {
+        res.status(500).json({ message: "خطأ في السيرفر" });
     }
 };

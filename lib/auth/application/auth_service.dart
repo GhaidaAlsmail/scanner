@@ -46,13 +46,12 @@ class AuthService {
       throw Exception('Register failed: ${res.body}');
     }
 
-    // إذا وصل الكود هنا، فالتسجيل نجح فعلاً!
-    print("Registration Successful!");
+    debugPrint("Registration Successful!");
   }
 
   /// LOGIN
   Future<AppUser> login({
-    required String email,
+    required String username,
     required String password,
   }) async {
     final baseUrl = await getDynamicBaseUrl();
@@ -60,7 +59,7 @@ class AuthService {
     final res = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'username': username, 'password': password}),
     );
 
     if (res.statusCode != 200) {
@@ -169,40 +168,146 @@ class AuthService {
     }
   }
 
+  Future<List<dynamic>> getAllEmployees() async {
+    try {
+      // جلب الرابط الديناميكي (حسب الإعدادات لديكِ)
+      String baseUrl = await getDynamicBaseUrl();
+
+      // جلب التوكن المخزن للتأكد من صلاحية المدير
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await _dio.get(
+        '$baseUrl/auth/employees',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        // السيرفر يعيد قائمة بالموظفين
+        return response.data;
+      } else {
+        throw Exception("فشل جلب قائمة الموظفين");
+      }
+    } catch (e) {
+      print("Error fetching employees: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateEmployee({
+    required String userId,
+    required String newName, // إضافة الاسم
+    required String newUsername,
+    String? newPassword,
+    required bool isAdmin,
+  }) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await _dio.patch(
+        '$baseUrl/auth/update-employee/$userId',
+        data: {
+          'name': newName, // إرسال الاسم للسيرفر
+          'username': newUsername,
+          'isAdmin': isAdmin,
+          if (newPassword != null && newPassword.isNotEmpty)
+            'password': newPassword,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("فشل تحديث بيانات الموظف");
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? "حدث خطأ في الاتصال بالسيرفر",
+      );
+    }
+  }
+  // Future<void> updateEmployee({
+  //   required String userId,
+  //   required String newUsername,
+  //   String? newPassword,
+  //   required bool isAdmin,
+  // }) async {
+  //   try {
+  //     final baseUrl = await getDynamicBaseUrl();
+  //     final prefs = await SharedPreferences.getInstance();
+  //     final token = prefs.getString('token');
+
+  //     // نستخدم Dio هنا لأنه أسهل في التعامل مع طلبات PATCH
+  //     final response = await _dio.patch(
+  //       '$baseUrl/auth/update-employee/$userId',
+  //       data: {
+  //         'username': newUsername,
+  //         'isAdmin': isAdmin,
+  //         // لا نرسل الباسورد إلا إذا قام المدير بكتابة شيء فعلاً
+  //         if (newPassword != null && newPassword.isNotEmpty)
+  //           'password': newPassword,
+  //       },
+  //       options: Options(
+  //         headers: {
+  //           'Authorization': 'Bearer $token',
+  //           'Content-Type': 'application/json',
+  //         },
+  //       ),
+  //     );
+
+  //     if (response.statusCode != 200) {
+  //       throw Exception("فشل تحديث بيانات الموظف");
+  //     }
+
+  //     debugPrint("Update Successful for user: $userId");
+  //   } on DioException catch (e) {
+  //     // طباعة الخطأ القادم من السيرفر بالتفصيل في الـ Console
+  //     print("Dio Error Details: ${e.response?.data}");
+  //     throw Exception(
+  //       e.response?.data['message'] ?? "حدث خطأ في الاتصال بالسيرفر",
+  //     );
+  //   } catch (e) {
+  //     print("General Error: $e");
+  //     rethrow;
+  //   }
+  // }
+
   Future<void> addEmployeeByAdmin({
     required String name,
+    required String username, // جديد
     required String email,
     required String password,
     required String city,
+    required bool isAdmin, // جديد
   }) async {
-    // 1. الحصول على الرابط الديناميكي
     final baseUrl = await getDynamicBaseUrl();
-
-    // 2. الحصول على توكن المدير (لأن السيرفر لن يقبل إضافة موظف بدون صلاحية مدير)
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('token');
 
-    // 3. إرسال الطلب للسيرفر
     final res = await http.post(
-      Uri.parse(
-        '$baseUrl/auth/add-employee', //////////////////////////////////
-      ),
+      Uri.parse('$baseUrl/auth/add-employee'),
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
         'Accept': 'application/json',
-        'Authorization': 'Bearer $token', // الهيدر الأساسي للصلاحية
+        'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
         'name': name,
+        'username': username, // إرسال اسم المستخدم
         'email': email,
         'password': password,
         'city': city,
+        'isAdmin': isAdmin, // إرسال الصلاحية
       }),
     );
 
-    // 4. التحقق من رد السيرفر
     if (res.statusCode != 200 && res.statusCode != 201) {
-      // استخراج رسالة الخطأ من السيرفر إذا وجدت
       final errorData = jsonDecode(res.body);
       throw Exception(errorData['message'] ?? 'فشل إنشاء حساب الموظف');
     }

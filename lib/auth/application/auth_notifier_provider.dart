@@ -59,10 +59,13 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   ///  LOGIN
-  Future<void> login(String email, String password) async {
+  Future<void> login(String username, String password) async {
     try {
       BotToast.showLoading();
-      final user = await authService.login(email: email, password: password);
+      final user = await authService.login(
+        username: username,
+        password: password,
+      );
 
       state = user;
     } catch (e) {
@@ -73,7 +76,7 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   }
 
   Future<void> register({
-    required String email,
+    required String username,
     required String password,
     required AppUser user,
   }) async {

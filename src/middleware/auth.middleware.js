@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../modules/users/user.model.js'; // تأكد من استيراد الموديل
+import User from '../modules/users/user.model.js';
 
 export const protect = async (req, res, next) => {
   let token;
@@ -9,8 +9,6 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // بدلاً من تخزين الـ ID فقط، سنجلب المستخدم كاملاً من الداتابيز
-      // نستخدم .select('-passwordHash') لكي لا نرسل الباسورد المشفر للكنترولر
       req.user = await User.findById(decoded.id || decoded.userId).select('-passwordHash');
 
       if (!req.user) {
@@ -31,9 +29,8 @@ export const protect = async (req, res, next) => {
 //----------------------------------------------------------------------------//
 
 export const adminOnly = (req, res, next) => {
-    // req.user يأتي من ميدل وير الـ protect السابق
     if (req.user && req.user.isAdmin) {
-        next(); // إذا كان مديراً، يسمح له بالمرور
+        next(); 
     } else {
         res.status(403).json({ message: "خطأ: هذه الصلاحية للمدير فقط!" });
     }

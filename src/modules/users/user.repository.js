@@ -5,6 +5,10 @@ export const createUser = (data) => User.create(data);
 export const findByEmail = (email) =>
   User.findOne({ email }).lean();
 
+export const findByUserName = (username) =>
+  User.findOne({ username }).lean();
+
+
 export const findById = (id) =>
   User.findById(id).lean();
 

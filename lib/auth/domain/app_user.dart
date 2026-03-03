@@ -8,13 +8,13 @@ part 'app_user.g.dart';
 @freezed
 abstract class AppUser with _$AppUser {
   factory AppUser({
-    @JsonKey(name: '_id') String? id, // هنا لربط _id بـ id
+    @JsonKey(name: '_id') String? id,
     required String name,
-    required String email,
+    String? email,
     @Default(false) bool isAdmin,
     String? city,
     String? notes,
-    // String? password,
+    required String username,
     @JsonKey(includeToJson: false) String? password,
     DateTime? birthDate,
     String? profilePictureUrl,

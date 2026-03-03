@@ -57,10 +57,14 @@ class SignUpScreen extends ConsumerWidget {
                     builder: (context, formGroup, child) {
                       return ButtonWidget(
                         text: "Sign Up".i18n,
+                        // داخل ButtonWidget onTap:
                         onTap: formGroup.invalid
                             ? null
                             : () async {
-                                var userName = form.control("userName").value;
+                                // استخراج القيم من الفورم
+                                var userName = form
+                                    .control("userName")
+                                    .value; // تأكدي من مطابقة الاسم في الـ FormProvider
                                 var email = form.control("email").value;
                                 var password = form.control("password").value;
 
@@ -68,20 +72,25 @@ class SignUpScreen extends ConsumerWidget {
                                   await ref
                                       .read(authNotifierProvider.notifier)
                                       .register(
-                                        email: email,
+                                        username:
+                                            userName, // تمرير اسم المستخدم
                                         password: password,
                                         user: AppUser(
-                                          email: email,
-                                          name: userName,
+                                          username:
+                                              userName, // الحقل الجديد الذي أضفناه للموديل
+                                          name:
+                                              userName, // نستخدم اسم المستخدم كاسم عرض مؤقتاً
+                                          email:
+                                              email, // لا تنسي تمرير الإيميل ليتمكن السيرفر من إرسال التفعيل
                                         ),
                                       );
-                                  // إذا نجحت العملية
+
                                   formGroup.reset();
                                   if (context.mounted) {
                                     context.pop();
                                   }
                                 } catch (e) {
-                                  // الخطأ معالج في النوتيفاير عبر BotToast
+                                  // الخطأ معالج في النوتيفاير
                                 }
                               },
                       );

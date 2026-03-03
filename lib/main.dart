@@ -14,16 +14,7 @@ import 'translation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await initGoogleSignIn();
   await MyI18n.loadTranslations();
-  // try {
-
-  //   if (settings.authorizationStatus != AuthorizationStatus.authorized) {
-  //     debugPrint("لم يتم منح إذن الإشعارات");
-  //   }
-  // } catch (e) {
-  //   BotToast.closeAllLoading();
-  // }
 
   usePathUrlStrategy();
   // Language ------------------------------------------------------------------

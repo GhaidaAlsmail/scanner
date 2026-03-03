@@ -15,9 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppUser {
 
-@JsonKey(name: '_id') String? get id;// هنا لربط _id بـ id
- String get name; String get email; bool get isAdmin; String? get city; String? get notes;// String? password,
-@JsonKey(includeToJson: false) String? get password; DateTime? get birthDate; String? get profilePictureUrl; List<String>? get nickNames; String? get phone; int get stars;
+@JsonKey(name: '_id') String? get id; String get name; String? get email; bool get isAdmin; String? get city; String? get notes; String get username;@JsonKey(includeToJson: false) String? get password; DateTime? get birthDate; String? get profilePictureUrl; List<String>? get nickNames; String? get phone; int get stars;
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,16 +28,16 @@ $AppUserCopyWith<AppUser> get copyWith => _$AppUserCopyWithImpl<AppUser>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.city, city) || other.city == city)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.password, password) || other.password == password)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&const DeepCollectionEquality().equals(other.nickNames, nickNames)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.stars, stars) || other.stars == stars));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.city, city) || other.city == city)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.username, username) || other.username == username)&&(identical(other.password, password) || other.password == password)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&const DeepCollectionEquality().equals(other.nickNames, nickNames)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.stars, stars) || other.stars == stars));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,isAdmin,city,notes,password,birthDate,profilePictureUrl,const DeepCollectionEquality().hash(nickNames),phone,stars);
+int get hashCode => Object.hash(runtimeType,id,name,email,isAdmin,city,notes,username,password,birthDate,profilePictureUrl,const DeepCollectionEquality().hash(nickNames),phone,stars);
 
 @override
 String toString() {
-  return 'AppUser(id: $id, name: $name, email: $email, isAdmin: $isAdmin, city: $city, notes: $notes, password: $password, birthDate: $birthDate, profilePictureUrl: $profilePictureUrl, nickNames: $nickNames, phone: $phone, stars: $stars)';
+  return 'AppUser(id: $id, name: $name, email: $email, isAdmin: $isAdmin, city: $city, notes: $notes, username: $username, password: $password, birthDate: $birthDate, profilePictureUrl: $profilePictureUrl, nickNames: $nickNames, phone: $phone, stars: $stars)';
 }
 
 
@@ -50,7 +48,7 @@ abstract mixin class $AppUserCopyWith<$Res>  {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) _then) = _$AppUserCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: '_id') String? id, String name, String email, bool isAdmin, String? city, String? notes,@JsonKey(includeToJson: false) String? password, DateTime? birthDate, String? profilePictureUrl, List<String>? nickNames, String? phone, int stars
+@JsonKey(name: '_id') String? id, String name, String? email, bool isAdmin, String? city, String? notes, String username,@JsonKey(includeToJson: false) String? password, DateTime? birthDate, String? profilePictureUrl, List<String>? nickNames, String? phone, int stars
 });
 
 
@@ -67,15 +65,16 @@ class _$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? email = null,Object? isAdmin = null,Object? city = freezed,Object? notes = freezed,Object? password = freezed,Object? birthDate = freezed,Object? profilePictureUrl = freezed,Object? nickNames = freezed,Object? phone = freezed,Object? stars = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? email = freezed,Object? isAdmin = null,Object? city = freezed,Object? notes = freezed,Object? username = null,Object? password = freezed,Object? birthDate = freezed,Object? profilePictureUrl = freezed,Object? nickNames = freezed,Object? phone = freezed,Object? stars = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
+as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
 as bool,city: freezed == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
+as String?,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String?,birthDate: freezed == birthDate ? _self.birthDate : birthDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
 as String?,nickNames: freezed == nickNames ? _self.nickNames : nickNames // ignore: cast_nullable_to_non_nullable
@@ -166,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id,  String name,  String email,  bool isAdmin,  String? city,  String? notes, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id,  String name,  String? email,  bool isAdmin,  String? city,  String? notes,  String username, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
+return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.username,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
   return orElse();
 
 }
@@ -187,10 +186,10 @@ return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.n
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id,  String name,  String email,  bool isAdmin,  String? city,  String? notes, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: '_id')  String? id,  String name,  String? email,  bool isAdmin,  String? city,  String? notes,  String username, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)  $default,) {final _that = this;
 switch (_that) {
 case _AppUser():
-return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
+return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.username,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +206,10 @@ return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.n
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: '_id')  String? id,  String name,  String email,  bool isAdmin,  String? city,  String? notes, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: '_id')  String? id,  String name,  String? email,  bool isAdmin,  String? city,  String? notes,  String username, @JsonKey(includeToJson: false)  String? password,  DateTime? birthDate,  String? profilePictureUrl,  List<String>? nickNames,  String? phone,  int stars)?  $default,) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
+return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.notes,_that.username,_that.password,_that.birthDate,_that.profilePictureUrl,_that.nickNames,_that.phone,_that.stars);case _:
   return null;
 
 }
@@ -222,17 +221,16 @@ return $default(_that.id,_that.name,_that.email,_that.isAdmin,_that.city,_that.n
 @JsonSerializable()
 
 class _AppUser implements AppUser {
-   _AppUser({@JsonKey(name: '_id') this.id, required this.name, required this.email, this.isAdmin = false, this.city, this.notes, @JsonKey(includeToJson: false) this.password, this.birthDate, this.profilePictureUrl, final  List<String>? nickNames, this.phone, this.stars = 0}): _nickNames = nickNames;
+   _AppUser({@JsonKey(name: '_id') this.id, required this.name, this.email, this.isAdmin = false, this.city, this.notes, required this.username, @JsonKey(includeToJson: false) this.password, this.birthDate, this.profilePictureUrl, final  List<String>? nickNames, this.phone, this.stars = 0}): _nickNames = nickNames;
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 
 @override@JsonKey(name: '_id') final  String? id;
-// هنا لربط _id بـ id
 @override final  String name;
-@override final  String email;
+@override final  String? email;
 @override@JsonKey() final  bool isAdmin;
 @override final  String? city;
 @override final  String? notes;
-// String? password,
+@override final  String username;
 @override@JsonKey(includeToJson: false) final  String? password;
 @override final  DateTime? birthDate;
 @override final  String? profilePictureUrl;
@@ -261,16 +259,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.city, city) || other.city == city)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.password, password) || other.password == password)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&const DeepCollectionEquality().equals(other._nickNames, _nickNames)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.stars, stars) || other.stars == stars));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.city, city) || other.city == city)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.username, username) || other.username == username)&&(identical(other.password, password) || other.password == password)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.profilePictureUrl, profilePictureUrl) || other.profilePictureUrl == profilePictureUrl)&&const DeepCollectionEquality().equals(other._nickNames, _nickNames)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.stars, stars) || other.stars == stars));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,isAdmin,city,notes,password,birthDate,profilePictureUrl,const DeepCollectionEquality().hash(_nickNames),phone,stars);
+int get hashCode => Object.hash(runtimeType,id,name,email,isAdmin,city,notes,username,password,birthDate,profilePictureUrl,const DeepCollectionEquality().hash(_nickNames),phone,stars);
 
 @override
 String toString() {
-  return 'AppUser(id: $id, name: $name, email: $email, isAdmin: $isAdmin, city: $city, notes: $notes, password: $password, birthDate: $birthDate, profilePictureUrl: $profilePictureUrl, nickNames: $nickNames, phone: $phone, stars: $stars)';
+  return 'AppUser(id: $id, name: $name, email: $email, isAdmin: $isAdmin, city: $city, notes: $notes, username: $username, password: $password, birthDate: $birthDate, profilePictureUrl: $profilePictureUrl, nickNames: $nickNames, phone: $phone, stars: $stars)';
 }
 
 
@@ -281,7 +279,7 @@ abstract mixin class _$AppUserCopyWith<$Res> implements $AppUserCopyWith<$Res> {
   factory _$AppUserCopyWith(_AppUser value, $Res Function(_AppUser) _then) = __$AppUserCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: '_id') String? id, String name, String email, bool isAdmin, String? city, String? notes,@JsonKey(includeToJson: false) String? password, DateTime? birthDate, String? profilePictureUrl, List<String>? nickNames, String? phone, int stars
+@JsonKey(name: '_id') String? id, String name, String? email, bool isAdmin, String? city, String? notes, String username,@JsonKey(includeToJson: false) String? password, DateTime? birthDate, String? profilePictureUrl, List<String>? nickNames, String? phone, int stars
 });
 
 
@@ -298,15 +296,16 @@ class __$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? email = null,Object? isAdmin = null,Object? city = freezed,Object? notes = freezed,Object? password = freezed,Object? birthDate = freezed,Object? profilePictureUrl = freezed,Object? nickNames = freezed,Object? phone = freezed,Object? stars = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? email = freezed,Object? isAdmin = null,Object? city = freezed,Object? notes = freezed,Object? username = null,Object? password = freezed,Object? birthDate = freezed,Object? profilePictureUrl = freezed,Object? nickNames = freezed,Object? phone = freezed,Object? stars = null,}) {
   return _then(_AppUser(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
+as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
 as bool,city: freezed == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
+as String?,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
+as String,password: freezed == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String?,birthDate: freezed == birthDate ? _self.birthDate : birthDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,profilePictureUrl: freezed == profilePictureUrl ? _self.profilePictureUrl : profilePictureUrl // ignore: cast_nullable_to_non_nullable
 as String?,nickNames: freezed == nickNames ? _self._nickNames : nickNames // ignore: cast_nullable_to_non_nullable

@@ -4,7 +4,8 @@ import mongoose from 'mongoose';
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: {type: String,   unique: true,sparse: true},
+    username: { type: String, required: true, unique: true },
     city: { type: String, required: true },
     notes: String,
     phone: String,
@@ -14,7 +15,6 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     nickNames: [String],
     isAdmin: { type: Boolean, default: false },
-    // stars: { type: Number, default: 0 },
     passwordHash: { type: String, required: true },
     isVerified: { type: Boolean, default: true },
     emailVerificationToken: String,

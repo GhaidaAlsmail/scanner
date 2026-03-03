@@ -48,6 +48,13 @@ class AdminDashboardScreen extends ConsumerWidget {
                   ),
                   _buildAdminCard(
                     context,
+                    title: "إدارة الموظفين".i18n,
+                    icon: Icons.person_add_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                    onTap: () => context.push('/manage-employees'),
+                  ),
+                  _buildAdminCard(
+                    context,
                     title: "إدارة الملفات".i18n,
                     icon: Icons.edit_document,
                     color: Theme.of(context).colorScheme.primary,

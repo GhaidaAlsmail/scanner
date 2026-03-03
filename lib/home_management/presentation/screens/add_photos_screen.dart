@@ -66,21 +66,8 @@ class AddPhotosScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // const Gap(30),
                     _buildImageSection(context, ref, selectedImages),
                     const Gap(20),
-
-                    ReactiveTextInputWidget(
-                      hint: 'العنوان'.i18n,
-                      controllerName: 'head',
-                      inputStyle: InputStyle.outlined,
-                    ),
-                    const Gap(5),
-
-                    // --- قسم الموظف المسؤول ---
-                    _buildEmployeeDropdown(context, userName),
-
-                    // const Gap(5),
                     areasAsyncValue.when(
                       data: (areasData) =>
                           _buildAreaSelectors(context, form, areasData),
@@ -88,16 +75,41 @@ class AddPhotosScreen extends ConsumerWidget {
                       error: (err, _) => Text("خطأ في تحميل البيانات: $err"),
                     ),
 
-                    const Gap(15),
+                    // const Gap(15),
+                    const Gap(20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ReactiveTextInputWidget(
+                            hint: 'من'.i18n,
+                            controllerName: 'headPart1',
+                            inputStyle: InputStyle.outlined,
+                          ),
+                        ),
+                        const Gap(10),
+                        Expanded(
+                          child: ReactiveTextInputWidget(
+                            hint: 'إلى'.i18n,
+                            controllerName: 'headPart2',
+                            inputStyle: InputStyle.outlined,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Gap(15),
                     ReactiveTextInputWidget(
-                      hint: 'تفاصيل وملاحظات'.i18n,
-                      controllerName: 'details',
+                      hint: 'العنوان'.i18n,
+                      controllerName: 'head',
                       inputStyle: InputStyle.outlined,
                     ),
+
+                    // --- قسم الموظف المسؤول ---
+                    _buildEmployeeDropdown(context, userName),
                     const Gap(15),
                     _buildActionButtons(context, ref, form, selectedImages),
                     const Gap(15),
                     _buildNavigationButtons(context, isAdmin),
+                    const Gap(5),
                   ],
                 ),
               ),
@@ -108,7 +120,6 @@ class AddPhotosScreen extends ConsumerWidget {
     );
   }
 
-  // دالة بناء المربعات المنسدلة للمناطق
   Widget _buildAreaSelectors(
     BuildContext context,
     FormGroup form,
@@ -170,7 +181,7 @@ class AddPhotosScreen extends ConsumerWidget {
                         children: [
                           Text(area['name']),
                           Text(
-                            " - ${area['id'] ?? 'N/A'}", // عرض الرقم
+                            " - ${area['id'] ?? 'N/A'}",
                             style: TextStyle(
                               color: Theme.of(
                                 context,
@@ -183,13 +194,11 @@ class AddPhotosScreen extends ConsumerWidget {
                     );
                   }).toList(),
                   onChanged: (control) {
-                    // 1. نبحث عن كائن المنطقة الذي يطابق الاسم المختار
                     final selectedAreaObject = subAreas.firstWhere(
                       (element) => element['name'] == control.value,
                       orElse: () => null,
                     );
 
-                    // 2. إذا وجدناه، نقوم بتحديث حقل 'id' في الفورم بقيمة الـ id الحقيقية
                     if (selectedAreaObject != null) {
                       form
                           .control('id')
@@ -413,7 +422,6 @@ Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
     children: [
       Row(
         children: [
-          // Gap(15),
           if (!isAdmin)
             Expanded(
               child: ButtonWidget(
@@ -421,7 +429,6 @@ Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
                 onTap: () => context.push('/all-documents'),
               ),
             ),
-          // Gap(15),
           if (isAdmin)
             Expanded(
               child: ButtonWidget(
@@ -441,24 +448,50 @@ Future<void> _handleUpload(
   FormGroup form,
   List<File> images,
 ) async {
-  if (images.isEmpty) {
-    BotToast.showText(text: 'يرجى التقاط صورة واحدة على الأقل');
+  final requiredControls = [
+    'head',
+    'headPart1',
+    'headPart2',
+    'name',
+    'mainCategory',
+    'subArea',
+    'id',
+  ];
+  for (var control in requiredControls) {
+    if (!form.contains(control)) {
+      BotToast.showText(text: 'خطأ: الحقل $control غير موجود في الـ Provider');
+      return;
+    }
+  }
+
+  final String mainTitle = form.control('head').value?.toString().trim() ?? "";
+  final String fromPart =
+      form.control('headPart1').value?.toString().trim() ?? "";
+  final String toPart =
+      form.control('headPart2').value?.toString().trim() ?? "";
+
+  if (mainTitle.isEmpty || fromPart.isEmpty || toPart.isEmpty) {
+    BotToast.showText(
+      text: 'يرجى ملء جميع حقول العنوان (العنوان، من، إلى)'.i18n,
+    );
     return;
   }
 
-  if (form.control('head').value == null) {
-    BotToast.showText(text: 'يرجى إضافة عنوان الملف');
+  final String combinedFullTitle = "$mainTitle ($fromPart - $toPart)";
+
+  if (images.isEmpty) {
+    BotToast.showText(text: 'يرجى التقاط صورة واحدة على الأقل'.i18n);
     return;
   }
 
   if (form.control('name').value == null) {
-    BotToast.showText(text: 'يرجى اختيار الموظف المسؤول');
+    BotToast.showText(text: 'يرجى اختيار الموظف المسؤول'.i18n);
     return;
   }
 
   if (form.control('mainCategory').value == null ||
       form.control('subArea').value == null) {
-    BotToast.showText(text: 'يرجى اختيار التصنيف والمنطقة');
+    BotToast.showText(text: 'يرجى اختيار التصنيف والمنطقة'.i18n);
     return;
   }
 
@@ -475,17 +508,18 @@ Future<void> _handleUpload(
           imageFiles: images,
           region: mainLabel,
           subArea: form.control('subArea').value,
-          docTitle:
-              form.control('head').value ??
-              "Document_${DateTime.now().millisecondsSinceEpoch}",
-          id: form.control('id').value,
+          docTitle: combinedFullTitle,
+          id: form.control('id').value.toString(),
         );
-    print("Sending ID: ${form.control('id').value}");
+
+    debugPrint("Final Combined Title: $combinedFullTitle");
     BotToast.showText(text: 'تم إنشاء ورفع ملف PDF بنجاح'.i18n);
+
     ref.read(selectedImagesListProvider.notifier).state = [];
     form.reset();
   } catch (e) {
-    BotToast.showText(text: 'خطأ: $e');
+    debugPrint("Upload Error: $e");
+    BotToast.showText(text: 'حدث خطأ أثناء الرفع: $e');
   } finally {
     BotToast.closeAllLoading();
   }

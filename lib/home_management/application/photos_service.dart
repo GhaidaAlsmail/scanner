@@ -1,4 +1,4 @@
-// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: curly_braces_in_flow_control_structures, depend_on_referenced_packages
 
 import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
@@ -14,6 +14,7 @@ import '../../core/presentation/widgets/get_base_url.dart';
 import '../application/add_photos_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:http_parser/http_parser.dart';
 
 final photosServicesProvider = Provider((ref) => PhotosServices(Dio()));
 
@@ -244,6 +245,8 @@ class PhotosServices {
             'pdf',
             newFile.path,
             filename: "$newTitle.pdf",
+            // إضافة نوع الملف (MIME Type) يسهل عمل السيرفر جداً
+            contentType: MediaType('application', 'pdf'),
           ),
         );
       }
