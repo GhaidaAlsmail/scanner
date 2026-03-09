@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/application/auth_notifier_provider.dart';
@@ -27,10 +28,14 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
   String? userRole;
 
   // متغيرات التصفية والبحث
-  String? selectedRegion; // المنطقة الكبرى المختارة
-  String? selectedSubArea; // المنطقة الفرعية المختارة
-  String searchQuery = ""; // نص البحث
-  bool isSearching = false; // وضع البحث نشط أم لا
+  String? selectedRegion;
+  String? selectedSubArea;
+  String searchQuery = "";
+  bool isSearching = false;
+
+  // نصوص ثابتة لمعالجة القيم الفارغة
+  static const String undefinedRegion = "تصنيف غير محدد";
+  static const String undefinedSubArea = "منطقة غير محددة";
 
   @override
   void initState() {
@@ -72,7 +77,6 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
     }
   }
 
-  // العودة للخلف في نظام المجلدات
   void _goBack() {
     setState(() {
       if (selectedSubArea != null) {
@@ -148,45 +152,47 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
       return _buildFilesList(results, isAdmin, isSearchMode: true);
     }
 
-    // 2. منطق المجلدات (Hierarchy)
+    // 2. منطق المجلدات المستوى الأول (Regions)
     if (selectedRegion == null) {
       final regions = documents
-          .map((e) => e['region'] as String)
+          .map((e) => e['region']?.toString() ?? undefinedRegion)
           .toSet()
           .toList();
+
       return _buildFolderList(
         regions,
         Icons.folder_shared,
         const Color.fromARGB(255, 237, 201, 122),
-        (val) {
-          setState(() => selectedRegion = val);
-        },
+        (val) => setState(() => selectedRegion = val),
       );
     }
 
+    // 3. منطق المجلدات المستوى الثاني (SubAreas)
     if (selectedSubArea == null) {
       final subAreas = documents
-          .where((e) => e['region'] == selectedRegion)
-          .map((e) => e['subArea'] as String)
+          .where(
+            (e) =>
+                (e['region']?.toString() ?? undefinedRegion) == selectedRegion,
+          )
+          .map((e) => e['subArea']?.toString() ?? undefinedSubArea)
           .toSet()
           .toList();
+
       return _buildFolderList(
         subAreas,
-        Icons.folder_shared,
+        Icons.folder_copy, // أيقونة مختلفة قليلاً للتميز
         Theme.of(context).colorScheme.primary,
-        (val) {
-          setState(() => selectedSubArea = val);
-        },
+        (val) => setState(() => selectedSubArea = val),
       );
     }
 
-    // 3. عرض الملفات النهائية
-    final filteredDocs = documents
-        .where(
-          (e) =>
-              e['region'] == selectedRegion && e['subArea'] == selectedSubArea,
-        )
-        .toList();
+    // 4. عرض الملفات النهائية بعد اختيار المنطقة والمنطقة الفرعية
+    final filteredDocs = documents.where((e) {
+      final docRegion = e['region']?.toString() ?? undefinedRegion;
+      final docSubArea = e['subArea']?.toString() ?? undefinedSubArea;
+      return docRegion == selectedRegion && docSubArea == selectedSubArea;
+    }).toList();
+
     return _buildFilesList(filteredDocs, isAdmin);
   }
 
@@ -197,6 +203,7 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
     Color color,
     Function(String) onTap,
   ) {
+    if (items.isEmpty) return const Center(child: Text("المجلد فارغ"));
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) => Card(
@@ -226,11 +233,18 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
       onRefresh: _refreshDocuments,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        controller: _scrollController,
+        controller: isSearchMode
+            ? null
+            : _scrollController, // تجنب تعارض السكرول عند البحث
         itemCount: docs.length + (isLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == docs.length) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
 
           final doc = docs[index];
@@ -239,7 +253,7 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
             child: ListTile(
               leading: Icon(
                 Icons.picture_as_pdf,
-                color: Theme.of(context).colorScheme.primary,
+                color: Colors.red.shade700,
                 size: 40,
               ),
               title: Text(
@@ -248,13 +262,31 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
               ),
               subtitle: Text(
                 isSearchMode
-                    ? "المسار: ${doc['region']} > ${doc['subArea']}\nالمعرف: ${doc['id']}"
-                    : "المعرف: ${doc['id']} | ${doc['createdAt'].toString().substring(0, 10)}",
+                    ? "المسار: ${doc['region'] ?? '؟'} > ${doc['subArea'] ?? '؟'}\nالمعرف: ${doc['id']}"
+                    : "المعرف: ${doc['id']} | ${doc['createdAt']?.toString().substring(0, 10) ?? ''}",
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: isAdmin
                   ? _buildAdminActions(doc)
-                  : const Icon(Icons.open_in_new, size: 18),
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // يظهر للكل
+                        IconButton(
+                          icon: const Icon(
+                            Icons.print,
+                            color: Colors.blueGrey,
+                            size: 20,
+                          ),
+                          onPressed: () => ref
+                              .read(photosServicesProvider)
+                              .printRemotePdf(
+                                doc['pdfPath'],
+                                doc['title'] ?? 'مستند',
+                              ),
+                        ),
+                      ],
+                    ),
               onTap: () => _openPdf(doc['pdfPath']),
             ),
           );
@@ -272,29 +304,42 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
             Icons.edit_note,
             color: Theme.of(context).colorScheme.primary,
           ),
-          onPressed: () async => {
-            await context.push('/edit-document', extra: doc),
-            _refreshDocuments(),
-          }, //context.push('/edit-document', extra: doc),
+          onPressed: () async {
+            await context.push('/edit-document', extra: doc);
+            _refreshDocuments();
+          },
         ),
         IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.delete_forever,
-            color: Theme.of(context).colorScheme.primary,
+            color: Color.fromARGB(255, 26, 102, 29),
           ),
           onPressed: () => _confirmDelete(doc['_id'], doc['title']),
+        ),
+        // --- زر الطباعة الجديد ---
+        IconButton(
+          icon: const Icon(Icons.print, color: Colors.blueGrey),
+          tooltip: 'طباعة المستند',
+          onPressed: () {
+            // التأكد من وجود مسار للملف قبل استدعاء الطباعة
+            if (doc['pdfPath'] != null &&
+                doc['pdfPath'].toString().isNotEmpty) {
+              ref
+                  .read(photosServicesProvider)
+                  .printRemotePdf(doc['pdfPath'], doc['title'] ?? 'مستند_مالي');
+            } else {
+              BotToast.showText(text: "ملف الـ PDF غير متوفر لهذا المستند");
+            }
+          },
         ),
       ],
     );
   }
 
-  // --- الدوال الخدمية (فتح الملف، حذف، إلخ)  ---
-
+  // --- الدوال الخدمية ---
   Future<void> _openPdf(String? path) async {
-    if (path == null || path.isEmpty) {
-      BotToast.showText(text: "مسار الملف غير صحيح");
-      return;
-    }
+    if (path == null || path.isEmpty) return;
+
     try {
       String baseUrl = await getDynamicBaseUrl();
       String domain = baseUrl.replaceAll('/api', '');
@@ -304,15 +349,17 @@ class _AllDocumentsScreenState extends ConsumerState<AllDocumentsScreen> {
       if (!cleanPath.startsWith('/')) cleanPath = '/$cleanPath';
 
       final String fullUrl = "$domain$cleanPath";
-      final Uri uri = Uri.parse(Uri.encodeFull(fullUrl));
 
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        BotToast.showText(text: "لا يمكن فتح الملف");
+      await ScreenProtector.preventScreenshotOn();
+
+      if (await canLaunchUrl(Uri.parse(fullUrl))) {
+        await launchUrl(
+          Uri.parse(fullUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
     } catch (e) {
-      BotToast.showText(text: "خطأ في فتح الملف");
+      BotToast.showText(text: "تعذر فتح المستند");
     }
   }
 

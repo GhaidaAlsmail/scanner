@@ -62,13 +62,36 @@ class _ManageEmployeesScreenState extends ConsumerState<ManageEmployeesScreen> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text("اسم المستخدم: ${emp['username']}"),
-                      trailing: IconButton(
-                        icon: Icon(
-                          Icons.edit,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        onPressed: () => _showEditDialog(emp),
+                      trailing: Row(
+                        mainAxisSize:
+                            MainAxisSize.min, // مهم جداً لمنع تمدد الصف
+                        children: [
+                          // زر التعديل (القلم)
+                          IconButton(
+                            icon: Icon(
+                              Icons.edit,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () => _showEditDialog(emp),
+                          ),
+                          // زر الحذف (السلة)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () =>
+                                _deleteEmployee(emp['_id'], emp['name'] ?? ''),
+                          ),
+                        ],
                       ),
+                      //  IconButton(
+                      //   icon: Icon(
+                      //     Icons.edit,
+                      //     color: Theme.of(context).colorScheme.primary,
+                      //   ),
+                      //   onPressed: () => _showEditDialog(emp),
+                      // ),
                     ),
                   );
                 },
@@ -84,7 +107,6 @@ class _ManageEmployeesScreenState extends ConsumerState<ManageEmployeesScreen> {
     final passController = TextEditingController();
 
     final currentUser = ref.read(authNotifierProvider);
-    // final String? currentUsername = currentUser?.name;
     final String? currentUsername = currentUser?.username;
     const String superAdminUsername = "manager";
     bool isUserAdmin = employee['isAdmin'] ?? false;
@@ -194,6 +216,45 @@ class _ManageEmployeesScreenState extends ConsumerState<ManageEmployeesScreen> {
     } catch (e) {
       BotToast.closeAllLoading();
       BotToast.showText(text: "خطأ: $e");
+    }
+  }
+
+  Future<void> _deleteEmployee(String id, String name) async {
+    // إظهار حوار تأكيد قبل الحذف
+    bool confirm = false;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("تأكيد الحذف"),
+        content: Text("هل أنت متأكد من حذف حساب الموظف '$name' نهائياً؟"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("إلغاء"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              confirm = true;
+              Navigator.pop(context);
+            },
+            child: const Text("حذف", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (!confirm) return;
+
+    try {
+      BotToast.showLoading();
+      await ref.read(authServiceProvider).deleteEmployee(userId: id);
+      BotToast.closeAllLoading();
+      BotToast.showText(text: "تم حذف الموظف بنجاح");
+      _fetchEmployees(); // تحديث القائمة
+    } catch (e) {
+      BotToast.closeAllLoading();
+      BotToast.showText(text: "خطأ في الحذف: $e");
     }
   }
 }

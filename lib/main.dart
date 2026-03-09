@@ -11,9 +11,11 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:json_theme/json_theme.dart';
 import 'router.dart';
 import 'translation.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ScreenProtector.preventScreenshotOn();
   await MyI18n.loadTranslations();
 
   usePathUrlStrategy();

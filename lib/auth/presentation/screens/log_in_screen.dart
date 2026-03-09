@@ -60,8 +60,8 @@ class LogInScreen extends ConsumerWidget {
                               Text(
                                 "وزارة المالية",
                                 style: TextStyle(
-                                  fontSize: 18,
-                                  // fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                   fontFamily: "Cairo",
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
@@ -71,7 +71,8 @@ class LogInScreen extends ConsumerWidget {
                                 "الهيئة العامة للضرائب والرسوم",
                                 style: TextStyle(
                                   fontFamily: "Cairo",
-                                  fontSize: 18,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.primary.withOpacity(0.9),
@@ -81,7 +82,7 @@ class LogInScreen extends ConsumerWidget {
                               Text(
                                 "مـديرية المـالية في محافــظة حــمص",
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontFamily: "Cairo",
                                   color: Theme.of(
                                     context,
@@ -99,13 +100,13 @@ class LogInScreen extends ConsumerWidget {
                     ),
                     const Gap(100),
                     ReactiveTextInputWidget(
-                      hint: 'Username'.i18n,
+                      hint: 'اسم المستخدم'.i18n,
                       controllerName: 'username',
                       textInputAction: TextInputAction.next,
                     ),
                     const Gap(40),
                     ReactivePasswordInputWidget(
-                      hint: "Password",
+                      hint: "كلمة المرور",
                       controllerName: "password",
                       showEye: true,
                       textInputAction: TextInputAction.done,
@@ -116,7 +117,7 @@ class LogInScreen extends ConsumerWidget {
                       builder: (context, formGroup, child) {
                         return Center(
                           child: ButtonWidget(
-                            text: "Sign in".i18n,
+                            text: "تسجيل دخول".i18n,
                             onTap: formGroup.invalid
                                 ? null
                                 : () {
@@ -150,7 +151,7 @@ class LogInScreen extends ConsumerWidget {
                             fontFamily: "Cairo",
                             color: Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.9),
+                            ).colorScheme.primary.withOpacity(0.5),
                           ),
                         ),
                         Text(
@@ -160,7 +161,7 @@ class LogInScreen extends ConsumerWidget {
                             fontFamily: "Cairo",
                             color: Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.9),
+                            ).colorScheme.primary.withOpacity(0.5),
                           ),
                         ),
                       ],

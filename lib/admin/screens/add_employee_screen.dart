@@ -28,53 +28,6 @@ class AddEmployeeScreen extends ConsumerWidget {
               Image.asset('assets/images/logo.png', width: 250),
               const Gap(40),
 
-              // // حقل الاسم
-              // ReactiveTextInputWidget(
-              //   hint: 'اسم الموظف الكامل'.i18n,
-              //   controllerName: 'name',
-              //   inputStyle: InputStyle.outlined,
-              // ),
-              // const Gap(40),
-
-              // // حقل البريد الإلكتروني
-              // ReactiveTextInputWidget(
-              //   hint: 'البريد الإلكتروني'.i18n,
-              //   controllerName: 'email',
-              //   inputStyle: InputStyle.outlined,
-              // ),
-              // const Gap(40),
-
-              // // حقل كلمة المرور
-              // ReactiveTextInputWidget(
-              //   hint: 'كلمة المرور'.i18n,
-              //   controllerName: 'password',
-              //   inputStyle: InputStyle.outlined,
-              // ),
-              // const Gap(40),
-
-              // // اختيار المنطقة (المدينة)
-              // Column(
-              //   crossAxisAlignment: CrossAxisAlignment.start,
-              //   children: [
-              //     Text(
-              //       "المنطقة التابع لها".i18n,
-              //       style: const TextStyle(fontSize: 12),
-              //     ),
-              //     const Gap(5),
-              //     ReactiveDropdownField<String>(
-              //       formControlName: 'city',
-              //       decoration: InputDecoration(
-              //         border: OutlineInputBorder(
-              //           borderRadius: BorderRadius.circular(10),
-              //         ),
-              //         filled: true,
-              //       ),
-              //       items: ["حمص"]
-              //           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              //           .toList(),
-              //     ),
-              // داخل ملف AddEmployeeScreen في الـ Column:
-
               // 1. حقل الاسم الكامل
               ReactiveTextInputWidget(
                 hint: 'اسم الموظف الكامل'.i18n,
@@ -170,14 +123,14 @@ class AddEmployeeScreen extends ConsumerWidget {
           .read(authServiceProvider)
           .addEmployeeByAdmin(
             name: form.control('name').value,
-            username: form.control('username').value, // جديد
-            email: form.control('email').value ?? "", // قد يكون فارغاً
+            username: form.control('username').value,
+            email: form.control('email').value ?? "",
             password: form.control('password').value,
             city: form.control('city').value,
-            isAdmin: form.control('isAdmin').value, // جديد
+            isAdmin: form.control('isAdmin').value,
           );
       BotToast.showText(text: 'تم إنشاء حساب الموظف بنجاح');
-      Navigator.pop(context); // العودة للشاشة السابقة
+      Navigator.pop(context);
     } catch (e) {
       BotToast.showText(text: 'خطأ أثناء الإنشاء: $e');
     } finally {

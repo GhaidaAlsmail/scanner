@@ -205,7 +205,7 @@ export const addEmployee = async (req, res) => {
         await User.create({
             name,
             username, 
-            email: email || ` `,
+            email: (email && email.trim() !== "") ? email : undefined,
             passwordHash,
             city,
             isVerified: true, 
@@ -226,28 +226,52 @@ export const getAllEmployees = async (req, res) => {
         res.status(500).json({ message: "خطأ في جلب الموظفين" });
     }
 };
+// حذف موظف
+export const deleteEmployee = async (req, res) => {
+      try {
+        const { userId } = req.params;
 
+        // 1. منع المدير من حذف نفسه (أمان إضافي)
+        if (req.user.id === userId) {
+            return res.status(400).json({ message: "لا يمكنك حذف حسابك الشخصي من هنا" });
+        }
+
+        // 2. البحث عن الموظف وحذفه
+        const employee = await User.findByIdAndDelete(userId);
+
+        if (!employee) {
+            return res.status(404).json({ message: "الموظف غير موجود" });
+        }
+
+        res.status(200).json({ message: "تم حذف الموظف بنجاح" });
+    } catch (error) {
+        res.status(500).json({ message: "خطأ في السيرفر", error: error.message });
+    }
+};
+
+// ////edit employee
 // export const updateEmployee = async (req, res) => {
 //     try {
-//         const { username, password, isAdmin } = req.body;
+//         const { name, username, password, isAdmin } = req.body; 
 //         const targetUser = await User.findById(req.params.id);
-//         const currentUser = await User.findById(req.user.id); // المدير الذي يقوم بالعملية حالياً
+//         const currentUser = await User.findById(req.user.id);
 
 //         if (!targetUser) return res.status(404).json({ message: "المستخدم غير موجود" });
 
-//         // تحديث البيانات الأساسية (مسموح لكل المدراء)
+//         if (name) targetUser.name = name; 
+        
 //         if (username) targetUser.username = username;
 //         if (password) {
 //             const salt = await bcrypt.genSalt(10);
 //             targetUser.passwordHash = await bcrypt.hash(password, salt);
 //         }
-//         const SUPER_ADMIN_EMAIL = "admin@top.com"; 
+
+//         const SUPER_ADMIN_EMAIL = "manager@company.com"; 
 
 //         if (typeof isAdmin !== 'undefined' && isAdmin !== targetUser.isAdmin) {
 //             if (currentUser.email === SUPER_ADMIN_EMAIL) {
 //                 targetUser.isAdmin = isAdmin;
 //             } else {
-//                 // إذا لم يكن المدير الخارق، نرفض تعديل الصلاحية ولكن نكمل تعديل الباقي
 //                 return res.status(403).json({ message: "ليس لديك صلاحية لتغيير رتبة المستخدمين" });
 //             }
 //         }
@@ -268,11 +292,13 @@ export const updateEmployee = async (req, res) => {
         if (!targetUser) return res.status(404).json({ message: "المستخدم غير موجود" });
 
         if (name) targetUser.name = name; 
-        
         if (username) targetUser.username = username;
+
         if (password) {
             const salt = await bcrypt.genSalt(10);
             targetUser.passwordHash = await bcrypt.hash(password, salt);
+            
+          
         }
 
         const SUPER_ADMIN_EMAIL = "manager@company.com"; 
@@ -288,6 +314,7 @@ export const updateEmployee = async (req, res) => {
         await targetUser.save();
         res.json({ message: "تم التحديث بنجاح" });
     } catch (err) {
+        console.error(err); 
         res.status(500).json({ message: "خطأ في السيرفر" });
     }
 };

@@ -62,9 +62,7 @@ class SignUpScreen extends ConsumerWidget {
                             ? null
                             : () async {
                                 // استخراج القيم من الفورم
-                                var userName = form
-                                    .control("userName")
-                                    .value; // تأكدي من مطابقة الاسم في الـ FormProvider
+                                var userName = form.control("userName").value;
                                 var email = form.control("email").value;
                                 var password = form.control("password").value;
 
@@ -72,16 +70,12 @@ class SignUpScreen extends ConsumerWidget {
                                   await ref
                                       .read(authNotifierProvider.notifier)
                                       .register(
-                                        username:
-                                            userName, // تمرير اسم المستخدم
+                                        username: userName,
                                         password: password,
                                         user: AppUser(
-                                          username:
-                                              userName, // الحقل الجديد الذي أضفناه للموديل
-                                          name:
-                                              userName, // نستخدم اسم المستخدم كاسم عرض مؤقتاً
-                                          email:
-                                              email, // لا تنسي تمرير الإيميل ليتمكن السيرفر من إرسال التفعيل
+                                          username: userName,
+                                          name: userName,
+                                          email: email,
                                         ),
                                       );
 

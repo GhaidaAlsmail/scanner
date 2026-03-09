@@ -4,8 +4,36 @@ import Document from '../models/document.js';
 import { protect,adminOnly } from '../../../middleware/auth.middleware.js';
 import fs from 'fs';
 import path from 'path';
+import imagesToPdf from 'images-to-pdf';
 
 const router = Router();
+const ensureExists = (dir) => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+};
+
+// 2. إعداد المسارات الأساسية
+const tempUploadPath = path.join(process.cwd(), 'uploads/temp');
+ensureExists(tempUploadPath);
+ensureExists(path.join(process.cwd(), 'uploads/pdfs'));
+
+// 3. إعداد Multer خاص للصور المتعددة (الرفع المؤقت)
+const imageStorage = diskStorage({
+    destination: (req, file, cb) => {
+        ensureExists(tempUploadPath);
+        cb(null, tempUploadPath);
+    },
+    filename: (req, file, cb) => {
+        const safeName = file.originalname.replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '');
+        cb(null, `${Date.now()}-${safeName}`);
+    }
+});
+
+const uploadImages = multer({ 
+    storage: imageStorage,
+    limits: { fileSize: 30 * 1024 * 1024 } // 30MB للصورة الواحدة
+});
 
 // التأكد من وجود المجلدات عند تشغيل السيرفر
 const uploadDir = path.join(process.cwd(), 'uploads/pdfs');
@@ -13,7 +41,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// --- دالة مساعدة لتنظيف الأسماء العربية والرموز ---
+
 const sanitizeFileName = (name) => {
     return name
         .replace(/[/\\?%*:|"<>]/g, '-')
@@ -46,35 +74,67 @@ const storage = diskStorage({
 
 // ---------------------------------------------------------------- //
 const upload = multer({ storage,limits: { fileSize: 50 * 1024 * 1024 }});
-//------------------------------------------------------------------------------------//
 
-// router.get('/all', protect, async (req, res) => {
-//     try {
-//         const page = parseInt(req.query.page) || 1;
-//         const limit = parseInt(req.query.limit) || 10;
-//         const skip = (page - 1) * limit;
+// ----------------------------------------------------------------------------------
+//  الراوت الجديد: تحويل الصور المرفوعة من Flutter إلى PDF واحد وحفظه في القاعدة
+// ----------------------------------------------------------------------------------
+router.post('/upload-images-to-pdf', protect, uploadImages.array('images', 50), async (req, res) => {
+    try {
+        const { title, region, subArea, id } = req.body;
+        const files = req.files;
 
-//         const docs = await Document.find({ user: req.user.id })
-//             .sort({ createdAt: -1 }) // الأحدث أولاً
-//             .skip(skip)
-//             .limit(limit);
+        if (!files || files.length === 0) {
+            return res.status(400).json({ message: "لم يتم اختيار صور" });
+        }
 
-//         const totalDocs = await Document.countDocuments({ user: req.user.id });
-//         const totalPages = Math.ceil(totalDocs / limit);
+        // أ. تحديد مسار الحفظ النهائي (حسب المنطقة والمنطقة الفرعية)
+        const safeTitle = title.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_').trim();
+        const fileName = `${id}-${subArea}-${safeTitle}-${Date.now()}.pdf`;
+        const targetDir = path.join('uploads', 'pdfs', region || 'عام', subArea || 'غير_مصنف');
+        
+        ensureExists(targetDir);
+        const finalPdfPath = path.join(targetDir, fileName);
+        const normalizedPath = finalPdfPath.replace(/\\/g, '/');
 
-//         res.json({
-//             docs,
-//             meta: {
-//                 totalDocs,
-//                 totalPages,
-//                 currentPage: page,
-//                 hasNextPage: page < totalPages
-//             }
-//         });
-//     } catch (err) {
-//         res.status(500).json({ message: "خطأ في جلب البيانات" });
-//     }
-// });
+        // ب. تجميع مسارات الصور المؤقتة
+        const imagePaths = files.map(file => file.path);
+
+        // ج. تحويل الصور إلى PDF واحد (الجودة الأصلية)
+        await imagesToPdf(imagePaths, finalPdfPath);
+
+        // د. حذف الصور المؤقتة فوراً لتوفير مساحة السيرفر
+        imagePaths.forEach(imgPath => {
+            if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+        });
+
+        // هـ. حفظ البيانات في قاعدة البيانات
+        const newDoc = new Document({
+            id: id,
+            user: req.user.id,
+            title: title,
+            region: region,
+            subArea: subArea,
+            pdfPath: normalizedPath,
+            createdBy: req.user.id
+        });
+
+        await newDoc.save();
+
+        res.status(201).json({
+            success: true,
+            message: "تم إنشاء المستند وحذف الصور الأصلية بنجاح",
+            doc: newDoc
+        });
+
+    } catch (error) {
+        // تنظيف في حال الخطأ
+        if (req.files) {
+            req.files.forEach(f => { if (fs.existsSync(f.path)) fs.unlinkSync(f.path); });
+        }
+        console.error("PDF Creation Error:", error);
+        res.status(500).json({ message: "خطأ في معالجة الصور وتحويلها لـ PDF" });
+    }
+});
 //-------------------------------------------------------------------------------//
 router.get('/all', protect, async (req, res) => {
     try {
@@ -103,7 +163,7 @@ router.get('/all', protect, async (req, res) => {
         res.status(500).json({ message: "خطأ في جلب البيانات" });
     }
 });
-//--------------------------------------------------------------------------------//
+//------------------------------------راوت الرفع بدون ضغط--------------------------------------------//
 
 router.post('/upload-pdf', protect, upload.single('pdf'), async (req, res) => {
     try {
@@ -139,7 +199,6 @@ router.post('/upload-pdf', protect, upload.single('pdf'), async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-
 //-------------------------------------------------------------------------------------------//
 
 router.put('/update-title/:id', protect, async (req, res) => {
@@ -159,6 +218,53 @@ router.put('/update-title/:id', protect, async (req, res) => {
 
 
 //--------------------------------------------------------------------------------------//
+
+
+export const uploadAndCreatePdf = async (req, res) => {
+    try {
+        const { title, region, subArea, id } = req.body;
+        const files = req.files; // الصور المرفوعة عبر multer
+
+        if (!files || files.length === 0) {
+            return res.status(400).json({ message: "لم يتم اختيار صور" });
+        }
+
+        // 1. تحديد مسار الحفظ النهائي للـ PDF
+        const fileName = `${Date.now()}_${title}.pdf`;
+        const dirPath = path.join('uploads', 'pdfs', region, subArea);
+        
+        // إنشاء المجلد إذا لم يكن موجوداً
+        if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+        
+        const finalPdfPath = path.join(dirPath, fileName);
+
+        // 2. تجميع مسارات الصور المؤقتة التي رفعها multer
+        const imagePaths = files.map(file => file.path);
+
+        // 3. تحويل الصور إلى PDF (يحافظ على الدقة الأصلية الكاملة)
+        await imagesToPdf(imagePaths, finalPdfPath);
+
+        // 4. 🔥 الحل السحري: حذف الصور الأصلية فوراً لتوفير المساحة
+        imagePaths.forEach(imgPath => {
+            if (fs.existsSync(imgPath)) {
+                fs.unlinkSync(imgPath); 
+            }
+        });
+
+        // 5. حفظ بيانات المستند في قاعدة البيانات (مثال)
+        // const newDoc = await Document.create({ title, region, subArea, userId: id, pdfUrl: finalPdfPath });
+
+        res.status(201).json({
+            success: true,
+            message: "تم إنشاء المستند وحذف الصور المؤقتة بنجاح",
+            path: finalPdfPath
+        });
+
+    } catch (error) {
+        console.error("Error in PDF Creation:", error);
+        res.status(500).json({ message: "خطأ في معالجة الصور على السيرفر" });
+    }
+};
 //--------------------------------------------------------------------------------------//
 //------------------------------------------------------------------------------------//
 router.put('/update-pdf/:id', protect, upload.single('pdf'), async (req, res) => {
@@ -217,41 +323,10 @@ router.put('/update-pdf/:id', protect, upload.single('pdf'), async (req, res) =>
     }
 });
 //------------------------------------------------------------------------------//
-// راوت حذف مستند PDF
 
-// router.delete('/:id', protect, async (req, res) => {
-//     try {
-//         // 1. البحث عن المستند والتأكد أنه يخص المستخدم
-//         const document = await Document.findOne({ _id: req.params.id, user: req.user.id });
-
-//         if (!document) {
-//             return res.status(404).json({ message: "المستند غير موجود أو لا تملك صلاحية حذفه" });
-//         }
-
-//         // 2. حذف الملف الفيزيائي من مجلد uploads/pdfs
-//         if (document.pdfPath) {
-           
-//             const filePath = path.join(process.cwd(), document.pdfPath);
-            
-//             if (fs.existsSync(filePath)) {
-//                 fs.unlinkSync(filePath);
-                
-//             }
-//         }
-
-//         // 3. حذف السجل من قاعدة البيانات
-//         await Document.findByIdAndDelete(req.params.id);
-
-//         res.json({ message: "تم حذف المستند والملف بنجاح" });
-//     } catch (err) {
-//         console.error("Error deleting document:", err);
-//         res.status(500).json({ message: "خطأ في السيرفر أثناء حذف المستند" });
-//     }
-// });
-// ✅ أضف adminOnly هنا
 router.delete('/:id', protect, adminOnly, async (req, res) => {
     try {
-        // ✅ التعديل هنا: المدير يمكنه حذف أي مستند بغض النظر عن صاحبه
+        //  التعديل هنا: المدير يمكنه حذف أي مستند بغض النظر عن صاحبه
         const document = await Document.findById(req.params.id);
 
         if (!document) {

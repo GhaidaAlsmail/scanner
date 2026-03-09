@@ -1,30 +1,36 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, depend_on_referenced_packages
+// ignore_for_file: curly_braces_in_flow_control_structures, depend_on_referenced_packages, unnecessary_import
 
 import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/presentation/widgets/get_base_url.dart';
 import '../application/add_photos_provider.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:http_parser/http_parser.dart';
+import 'package:printing/printing.dart';
 
-final photosServicesProvider = Provider((ref) => PhotosServices(Dio()));
+// --- (1) مزود نسبة الرفع لتحديث الواجهة بسلاسة ---
+final uploadProgressProvider = StateProvider<int>((ref) => 0);
+
+// --- (2) مزود الخدمة الرئيسي ---
+final photosServicesProvider = Provider((ref) => PhotosServices(Dio(), ref));
 
 class PhotosServices {
   final ImagePicker _picker = ImagePicker();
   final Dio _dio;
+  final Ref ref; // نحتاج الـ Ref لتحديث الـ Provider
 
-  PhotosServices(this._dio);
+  PhotosServices(this._dio, this.ref);
 
-  // 1. التقاط الصور (كاميرا أو معرض) وإضافتها للقائمة
+  // التقاط الصور
   Future<void> _pickImage(ImageSource source, WidgetRef ref) async {
     try {
       if (source == ImageSource.camera) {
@@ -51,8 +57,8 @@ class PhotosServices {
     }
   }
 
-  //----------------------------------------------------------------------------//
-  Future<void> generateAndUploadPdfFromFiles({
+  // ----------------------------- الرفع بالجودة الكاملة (صور كقائمة) ------------------------------------
+  Future<void> uploadImagesAsList({
     required List<File> imageFiles,
     required String docTitle,
     required String region,
@@ -60,90 +66,193 @@ class PhotosServices {
     required String id,
   }) async {
     try {
+      BotToast.showLoading();
       final baseUrl = await getDynamicBaseUrl();
       final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-      // جلب التوكن والتأكد من وجوده
-      final String? token = prefs.getString('token');
+      // تصفير النسبة عند البدء
+      ref.read(uploadProgressProvider.notifier).state = 0;
 
-      if (token == null || token.isEmpty) {
-        throw Exception("انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول");
+      List<MultipartFile> multipartImages = [];
+      for (File file in imageFiles) {
+        multipartImages.add(
+          await MultipartFile.fromFile(
+            file.path,
+            filename: path.basename(file.path),
+          ),
+        );
       }
 
-      // 1. إنشاء مستند PDF
-      final pdf = pw.Document();
-
-      for (var file in imageFiles) {
-        if (await file.exists()) {
-          final image = pw.MemoryImage(file.readAsBytesSync());
-          pdf.addPage(
-            pw.Page(
-              pageFormat: PdfPageFormat.a3,
-              build: (pw.Context context) {
-                return pw.FullPage(
-                  ignoreMargins: true,
-                  child: pw.Center(
-                    child: pw.Image(image, fit: pw.BoxFit.contain, dpi: 400),
-                  ),
-                );
-              },
-            ),
-          );
-        }
-      }
-
-      // 2. حفظ الملف في المجلد المؤقت للجهاز
-      final tempDir = await getTemporaryDirectory();
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final tempFile = File("${tempDir.path}/pdf_$timestamp.pdf");
-      await tempFile.writeAsBytes(await pdf.save());
-
-      // 3. تجهيز FormData (إضافة subArea هنا)
       FormData formData = FormData.fromMap({
+        "title": docTitle,
         "region": region,
         "subArea": subArea,
         "id": id,
-        "title": docTitle,
-        "pdf": await MultipartFile.fromFile(
-          tempFile.path,
-          filename: "$docTitle.pdf",
-        ),
+        "images": multipartImages,
       });
 
-      // 4. إرسال الطلب
       final response = await _dio.post(
-        '$baseUrl/documents/upload-pdf',
+        '$baseUrl/documents/upload-images-to-pdf',
         data: formData,
         options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-          validateStatus: (status) => status! < 500,
+          headers: {"Authorization": "Bearer $token"},
+          sendTimeout: const Duration(minutes: 10),
         ),
+        onSendProgress: (sent, total) {
+          if (total != -1) {
+            int progress = ((sent / total) * 100).toInt();
+            ref.read(uploadProgressProvider.notifier).state = progress;
+
+            // تحديث رسالة BotToast بدون تكرار (Spam)
+            BotToast.showText(
+              text: "جاري رفع الصور الأصلية: $progress%",
+              align: Alignment.center,
+              onlyOne: true,
+              duration: const Duration(milliseconds: 800),
+            );
+          }
+        },
       );
 
-      debugPrint("Server Status Code: ${response.statusCode}");
-
       if (response.statusCode == 201 || response.statusCode == 200) {
-        debugPrint("تم الرفع بنجاح: $region -> $subArea");
-        if (await tempFile.exists()) await tempFile.delete();
-      } else if (response.statusCode == 401) {
-        throw Exception("غير مصرح لك بالعملية، يرجى تسجيل الدخول مجدداً");
-      } else {
-        throw Exception(
-          "فشل الرفع: ${response.data['message'] ?? 'خطأ غير معروف'}",
-        );
+        BotToast.showText(text: " تم الرفع.. جاري تنظيف الذاكرة المؤقتة");
+
+        for (File file in imageFiles) {
+          try {
+            if (await file.exists()) await file.delete();
+          } catch (e) {
+            debugPrint(" تعذر حذف ملف مؤقت: $e");
+          }
+        }
+        BotToast.closeAllLoading();
+        BotToast.showText(text: " تم الحفظ بنجاح وتوفير المساحة");
+        ref.read(uploadProgressProvider.notifier).state = 0;
       }
-    } on DioException catch (e) {
-      throw Exception("خطأ في الاتصال بالسيرفر: ${e.message}");
     } catch (e) {
+      BotToast.closeAllLoading();
+      BotToast.showText(text: " فشل الرفع: تأكدي من الإنترنت");
       rethrow;
     }
   }
 
-  // //----------------------------------------------------------------------------//
-  // 3. إظهار خيارات التقاط الصورة
+  // ----------------------------- الطباعة ------------------------------------
+  Future<void> printRemotePdf(String relativePath, String title) async {
+    try {
+      BotToast.showLoading();
+      final baseUrl = await getDynamicBaseUrl();
+      String domain = baseUrl.replaceAll('/api', '');
+      if (domain.endsWith('/')) domain = domain.substring(0, domain.length - 1);
+
+      final String fullUrl = "$domain/$relativePath".replaceAll('\\', '/');
+      final response = await http.get(Uri.parse(fullUrl));
+
+      if (response.statusCode == 200) {
+        await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => response.bodyBytes,
+          name: title,
+        );
+      } else {
+        throw Exception("فشل تحميل الملف");
+      }
+    } catch (e) {
+      BotToast.showText(text: "خطأ في الطباعة: ${e.toString()}");
+    } finally {
+      BotToast.closeAllLoading();
+    }
+  }
+
+  // جلب المستندات
+  Future<Map<String, dynamic>> fetchDocuments({required int page}) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('token');
+
+      final response = await _dio.get(
+        '$baseUrl/documents/all',
+        queryParameters: {'page': page, 'limit': 10},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      return response.data;
+    } catch (e) {
+      throw Exception("فشل تحميل البيانات");
+    }
+  }
+
+  // حذف مستند
+  Future<void> deleteDocument(String id) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      await _dio.delete(
+        '$baseUrl/documents/$id',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+    } catch (e) {
+      throw Exception("خطأ في حذف المستند");
+    }
+  }
+
+  // ----------------------------- التعديل (Update) ------------------------------------
+  Future<void> updateDocumentFile({
+    required String docId,
+    File? newFile,
+    required String newTitle,
+    required String region,
+    required String subArea,
+  }) async {
+    try {
+      BotToast.showLoading();
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('token');
+
+      FormData formData = FormData.fromMap({
+        "title": newTitle,
+        "region": region,
+        "subArea": subArea,
+        if (newFile != null)
+          "pdf": await MultipartFile.fromFile(
+            newFile.path,
+            filename: "$newTitle.pdf",
+            contentType: DioMediaType.parse("application/pdf"),
+          ),
+      });
+
+      final response = await _dio.put(
+        '$baseUrl/documents/update-pdf/$docId',
+        data: formData,
+        options: Options(
+          headers: {"Authorization": "Bearer $token"},
+          sendTimeout: const Duration(minutes: 5),
+        ),
+        onSendProgress: (sent, total) {
+          if (newFile != null && total != -1) {
+            int progress = ((sent / total) * 100).toInt();
+            BotToast.showText(
+              text: "جاري تحديث الملف الأصلي: $progress%",
+              align: Alignment.center,
+              onlyOne: true,
+            );
+          }
+        },
+      );
+
+      BotToast.closeAllLoading();
+      if (response.statusCode == 200) {
+        BotToast.showText(text: " تم تحديث البيانات بنجاح");
+      }
+    } catch (e) {
+      BotToast.closeAllLoading();
+      BotToast.showText(text: " خطأ في التحديث");
+      rethrow;
+    }
+  }
+
+  // عرض قائمة اختيار الصور
   Future<void> showImagePicker(BuildContext context, WidgetRef ref) async {
     showModalBottomSheet(
       context: context,
@@ -173,98 +282,4 @@ class PhotosServices {
       },
     );
   }
-  //----------------------------------------------------------------------------//
-  // 4. جلب المستندات
-
-  Future<Map<String, dynamic>> fetchDocuments({required int page}) async {
-    try {
-      final baseUrl = await getDynamicBaseUrl();
-      final prefs = await SharedPreferences.getInstance();
-      final String? token = prefs.getString('token');
-
-      final response = await _dio.get(
-        '$baseUrl/documents/all',
-        queryParameters: {'page': page, 'limit': 10},
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-
-      return response.data; // يحتوي على القائمة والميتا (meta)
-    } catch (e) {
-      throw Exception("فشل تحميل البيانات: $e");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  // 5. حذف مستند
-  Future<void> deleteDocument(String id) async {
-    try {
-      final baseUrl = await getDynamicBaseUrl();
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      await _dio.delete(
-        '$baseUrl/documents/$id',
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-    } catch (e) {
-      throw Exception("خطأ في حذف المستند");
-    }
-  }
-
-  //----------------------------------------------------------------------------//
-  // ---  دالة التعديل   ---
-  Future<void> updateDocumentFile({
-    required String docId,
-    File? newFile,
-    required String newTitle,
-    required String region,
-    required String subArea,
-  }) async {
-    try {
-      final baseUrl = await getDynamicBaseUrl();
-      final url = "$baseUrl/pdf/update-pdf/$docId";
-
-      debugPrint("➜ Attempting Update at: $url");
-
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      var request = http.MultipartRequest('PUT', Uri.parse(url));
-
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-
-      request.fields['title'] = newTitle;
-      request.fields['region'] = region;
-      request.fields['subArea'] = subArea;
-
-      if (newFile != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'pdf',
-            newFile.path,
-            filename: "$newTitle.pdf",
-            // إضافة نوع الملف (MIME Type) يسهل عمل السيرفر جداً
-            contentType: MediaType('application', 'pdf'),
-          ),
-        );
-      }
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        debugPrint(" Update Successful");
-      } else {
-        debugPrint(" Server Error Status: ${response.statusCode}");
-        throw Exception('فشل التحديث: ${response.body}');
-      }
-    } catch (e) {
-      debugPrint(" Exception in updateDocumentFile: $e");
-      rethrow;
-    }
-  }
-
-  //----------------------------------------------------------------------------//
 }

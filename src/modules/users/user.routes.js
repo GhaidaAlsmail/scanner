@@ -29,18 +29,43 @@ router.get('/me', protect, async (req, res, next) => {
  * @route   PUT /api/users/me
  * @desc    تحديث بيانات البروفايل
  */
+// router.put('/me', protect, async (req, res, next) => {
+//   try {
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.userId,
+//       { $set: req.body },
+//       { new: true, runValidators: true }
+//     ).select('-passwordHash');
+
+//     res.json(updatedUser);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 router.put('/me', protect, async (req, res, next) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.userId,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    ).select('-passwordHash');
+    const { name, username, password, city } = req.body;
+    
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
 
-    res.json(updatedUser);
+    if (name) user.name = name;
+    if (username) user.username = username;
+    if (city) user.city = city;
+    if (password) {
+      user.passwordHash = password; 
+    }
+
+    
+    await user.save();
+
+    
+    const userResponse = user.toObject();
+    delete userResponse.passwordHash;
+
+    res.json(userResponse);
   } catch (error) {
     next(error);
   }
 });
-
 export default router;

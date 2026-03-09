@@ -14,6 +14,7 @@ class ReactiveTextInputWidget extends StatelessWidget {
     this.inputStyle,
     this.textInputAction,
     this.suffixIcon,
+    bool? readOnly,
   });
   final String hint;
   Map<String, String Function(Object)>? validationMessages;

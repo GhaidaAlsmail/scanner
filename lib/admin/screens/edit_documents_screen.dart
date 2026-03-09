@@ -258,9 +258,7 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
           child: GestureDetector(
             onTap: () {
               setState(() => _pagesAsImages.removeAt(index));
-              _addNewPhotoWithScanner(
-                atIndex: index,
-              ); // سيفتح السكنر ويضع الصورة مكان المحذوفة
+              _addNewPhotoWithScanner(atIndex: index);
             },
             // onTap: () => setState(() => _pagesAsImages.removeAt(index)),
             child: const CircleAvatar(
@@ -278,8 +276,6 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
             onTap: () async {
               // 1. التقاط الصورة الجديدة وتحديد مكانها
               await _addNewPhotoWithScanner(atIndex: index);
-              // 2. حذف الصورة القديمة التي كانت في هذا المكان
-              // (اختياري: إذا أردتِ أن تحل محلها تماماً)
               if (_pagesAsImages.length > index + 1) {
                 setState(() => _pagesAsImages.removeAt(index + 1));
               }

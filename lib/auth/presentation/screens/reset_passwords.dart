@@ -48,11 +48,10 @@ class ResetPasswordScreen extends ConsumerWidget {
                 onTap: () async {
                   if (form.valid) {
                     final newPassword = form.control('password').value;
-                    // هنا سنستدعي الدالة التي سننشئها في الـ Notifier
                     await ref
                         .read(authNotifierProvider.notifier)
                         .completeResetPassword(token, newPassword);
-                    context.go('/login'); // العودة للوجن بعد النجاح
+                    context.go('/login');
                   }
                 },
               ),

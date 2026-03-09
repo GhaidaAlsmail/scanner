@@ -232,59 +232,40 @@ class AuthService {
       );
     }
   }
-  // Future<void> updateEmployee({
-  //   required String userId,
-  //   required String newUsername,
-  //   String? newPassword,
-  //   required bool isAdmin,
-  // }) async {
-  //   try {
-  //     final baseUrl = await getDynamicBaseUrl();
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
 
-  //     // نستخدم Dio هنا لأنه أسهل في التعامل مع طلبات PATCH
-  //     final response = await _dio.patch(
-  //       '$baseUrl/auth/update-employee/$userId',
-  //       data: {
-  //         'username': newUsername,
-  //         'isAdmin': isAdmin,
-  //         // لا نرسل الباسورد إلا إذا قام المدير بكتابة شيء فعلاً
-  //         if (newPassword != null && newPassword.isNotEmpty)
-  //           'password': newPassword,
-  //       },
-  //       options: Options(
-  //         headers: {
-  //           'Authorization': 'Bearer $token',
-  //           'Content-Type': 'application/json',
-  //         },
-  //       ),
-  //     );
+  Future<void> deleteEmployee({required String userId}) async {
+    try {
+      final baseUrl = await getDynamicBaseUrl();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-  //     if (response.statusCode != 200) {
-  //       throw Exception("فشل تحديث بيانات الموظف");
-  //     }
+      final response = await _dio.delete(
+        '$baseUrl/auth/delete-employee/$userId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
 
-  //     debugPrint("Update Successful for user: $userId");
-  //   } on DioException catch (e) {
-  //     // طباعة الخطأ القادم من السيرفر بالتفصيل في الـ Console
-  //     print("Dio Error Details: ${e.response?.data}");
-  //     throw Exception(
-  //       e.response?.data['message'] ?? "حدث خطأ في الاتصال بالسيرفر",
-  //     );
-  //   } catch (e) {
-  //     print("General Error: $e");
-  //     rethrow;
-  //   }
-  // }
+      if (response.statusCode != 200) {
+        throw Exception("فشل حذف حساب الموظف");
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? "حدث خطأ أثناء محاولة الحذف",
+      );
+    }
+  }
 
   Future<void> addEmployeeByAdmin({
     required String name,
-    required String username, // جديد
+    required String username,
     required String email,
     required String password,
     required String city,
-    required bool isAdmin, // جديد
+    required bool isAdmin,
   }) async {
     final baseUrl = await getDynamicBaseUrl();
     final prefs = await SharedPreferences.getInstance();
@@ -299,11 +280,11 @@ class AuthService {
       },
       body: jsonEncode({
         'name': name,
-        'username': username, // إرسال اسم المستخدم
+        'username': username,
         'email': email,
         'password': password,
         'city': city,
-        'isAdmin': isAdmin, // إرسال الصلاحية
+        'isAdmin': isAdmin,
       }),
     );
 

@@ -12,6 +12,7 @@ import '../../../auth/application/auth_notifier_provider.dart';
 import '../../../core/presentation/widgets/button_widget.dart';
 import '../../application/add_photos_provider.dart';
 import '../../application/photos_service.dart';
+import 'package:reactive_dropdown_search/reactive_dropdown_search.dart';
 
 class AddPhotosScreen extends ConsumerWidget {
   const AddPhotosScreen({super.key});
@@ -24,7 +25,9 @@ class AddPhotosScreen extends ConsumerWidget {
     final bool isAdmin = currentUser?.isAdmin ?? false;
     final String userName = currentUser?.name ?? "مستخدم غير معروف";
 
-    // جلب بيانات المناطق
+    // --- (1) مراقبة نسبة التقدم ---
+    final uploadProgress = ref.watch(uploadProgressProvider);
+
     final areasAsyncValue = ref.watch(areasDataProvider);
 
     if (form.control('name').value == null) {
@@ -66,6 +69,18 @@ class AddPhotosScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
+                    Text(
+                      "${"مرحباً".i18n} $userName",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Gap(10),
+
+                    // --- (2) عرض شريط التقدم هنا ---
+                    _buildUploadProgressBar(uploadProgress),
+
                     _buildImageSection(context, ref, selectedImages),
                     const Gap(20),
                     areasAsyncValue.when(
@@ -75,7 +90,6 @@ class AddPhotosScreen extends ConsumerWidget {
                       error: (err, _) => Text("خطأ في تحميل البيانات: $err"),
                     ),
 
-                    // const Gap(15),
                     const Gap(20),
                     Row(
                       children: [
@@ -96,15 +110,13 @@ class AddPhotosScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    Gap(15),
+                    const Gap(15),
                     ReactiveTextInputWidget(
                       hint: 'العنوان'.i18n,
                       controllerName: 'head',
                       inputStyle: InputStyle.outlined,
                     ),
 
-                    // --- قسم الموظف المسؤول ---
-                    _buildEmployeeDropdown(context, userName),
                     const Gap(15),
                     _buildActionButtons(context, ref, form, selectedImages),
                     const Gap(15),
@@ -115,6 +127,37 @@ class AddPhotosScreen extends ConsumerWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // --- دالة بناء شريط التقدم المخصصة ---
+  Widget _buildUploadProgressBar(int progress) {
+    if (progress <= 0 || progress >= 100) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress / 100,
+              minHeight: 12,
+              backgroundColor: Colors.grey[300],
+              color: const Color.fromARGB(255, 26, 102, 29),
+            ),
+          ),
+          const Gap(5),
+          Text(
+            "جاري الرفع الآن: $progress%",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
+          ),
+          const Gap(10),
         ],
       ),
     );
@@ -136,26 +179,40 @@ class AddPhotosScreen extends ConsumerWidget {
           ),
         ),
         const Gap(5),
-        ReactiveDropdownField<String>(
+        ReactiveDropdownSearch<String, String>(
           formControlName: 'mainCategory',
-          hint: Text('اختر التصنيف'.i18n),
-          decoration: _inputDecoration(context),
-          items: areasData.keys.map((key) {
-            return DropdownMenuItem<String>(
-              value: key,
-              child: Text(areasData[key]['label']),
-            );
-          }).toList(),
-          onChanged: (control) => form.control('subArea').reset(),
+          items: (filter, props) => areasData.keys.toList(),
+          itemAsString: (key) => areasData[key]['label']?.toString() ?? key,
+          dropdownDecoratorProps: DropDownDecoratorProps(
+            decoration: _inputDecoration(
+              context,
+            ).copyWith(hintText: 'اختر التصنيف'.i18n),
+          ),
+          popupProps: PopupProps.menu(
+            showSearchBox: true,
+            searchFieldProps: TextFieldProps(
+              decoration: InputDecoration(
+                hintText: "بحث عن تصنيف...".i18n,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
         ),
         const Gap(15),
         ReactiveValueListenableBuilder<String>(
           formControlName: 'mainCategory',
           builder: (context, control, child) {
+            if (control.dirty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                form.control('subArea').reset();
+                form.control('id').reset();
+              });
+            }
+
             final String? selectedKey = control.value;
             List<dynamic> subAreas = [];
             if (selectedKey != null && areasData.containsKey(selectedKey)) {
-              subAreas = areasData[selectedKey]['subAreas'];
+              subAreas = areasData[selectedKey]['subAreas'] ?? [];
             }
 
             return Column(
@@ -169,44 +226,54 @@ class AddPhotosScreen extends ConsumerWidget {
                   ),
                 ),
                 const Gap(5),
-                ReactiveDropdownField<String>(
+                ReactiveDropdownSearch<String, String>(
                   formControlName: 'subArea',
-                  hint: Text('اختر المنطقة'.i18n),
-                  decoration: _inputDecoration(context),
-                  items: subAreas.map((area) {
-                    return DropdownMenuItem<String>(
-                      value: area['name'].toString(),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(area['name']),
-                          Text(
-                            " - ${area['id'] ?? 'N/A'}",
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.6),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (control) {
-                    final selectedAreaObject = subAreas.firstWhere(
-                      (element) => element['name'] == control.value,
-                      orElse: () => null,
-                    );
-
-                    if (selectedAreaObject != null) {
-                      form
-                          .control('id')
-                          .patchValue(selectedAreaObject['id'].toString());
-                      debugPrint(
-                        "تم تحديث معرف المنطقة ليكون: ${selectedAreaObject['id']}",
+                  items: (filter, props) =>
+                      subAreas.map((area) => area['name'].toString()).toList(),
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    decoration: _inputDecoration(
+                      context,
+                    ).copyWith(hintText: 'اختر المنطقة'.i18n),
+                  ),
+                  popupProps: PopupProps.menu(
+                    showSearchBox: true,
+                    itemBuilder: (context, item, isSelected, isHighlighted) {
+                      final areaObj = subAreas.firstWhere(
+                        (e) => e['name'].toString() == item,
+                        orElse: () => null,
                       );
+                      return ListTile(
+                        selected: isSelected,
+                        title: Text(item),
+                        trailing: Text(
+                          areaObj != null ? areaObj['id'].toString() : "",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                ReactiveValueListenableBuilder<String>(
+                  formControlName: 'subArea',
+                  builder: (context, subControl, child) {
+                    final subVal = subControl.value;
+                    if (subVal != null && subControl.dirty) {
+                      final selectedAreaObject = subAreas.firstWhere(
+                        (element) => element['name'].toString() == subVal,
+                        orElse: () => null,
+                      );
+                      if (selectedAreaObject != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          form
+                              .control('id')
+                              .patchValue(selectedAreaObject['id'].toString());
+                        });
+                      }
                     }
+                    return const SizedBox.shrink();
                   },
                 ),
               ],
@@ -225,28 +292,9 @@ class AddPhotosScreen extends ConsumerWidget {
       fillColor: Theme.of(context).colorScheme.outlineVariant.withAlpha(22),
     );
   }
-
-  Widget _buildEmployeeDropdown(BuildContext context, String userName) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "الموظف المسؤول".i18n,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        const Gap(5),
-        ReactiveDropdownField<String>(
-          formControlName: 'name',
-          decoration: _inputDecoration(context),
-          items: [DropdownMenuItem(value: userName, child: Text(userName))],
-        ),
-      ],
-    );
-  }
 }
+
+// الـ Widgets الخارجية (Section, ActionButtons, Navigation) تبقى كما هي مع التأكد من استدعاء _handleUpload بشكل صحيح
 
 Widget _buildImageSection(
   BuildContext context,
@@ -334,13 +382,12 @@ Widget _buildImageSection(
                             borderRadius: BorderRadius.circular(15),
                             child: Image.file(
                               images[index],
-                              width: 140, // عرض الصورة داخل القائمة
+                              width: 140,
                               height: double.infinity,
                               fit: BoxFit.cover,
                             ),
                           ),
                         ),
-                        // زر حذف صورة معينة
                         Positioned(
                           top: 0,
                           right: 10,
@@ -372,7 +419,6 @@ Widget _buildImageSection(
                     ),
                   ),
                 ),
-                // عداد الصور أسفل المربع
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
@@ -390,7 +436,6 @@ Widget _buildImageSection(
   );
 }
 
-// أزرار الحفظ وتسجيل الخروج
 Widget _buildActionButtons(
   BuildContext context,
   WidgetRef ref,
@@ -416,7 +461,6 @@ Widget _buildActionButtons(
   );
 }
 
-// أزرار التنقل بين الصفحات
 Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
   return Column(
     children: [
@@ -442,69 +486,39 @@ Widget _buildNavigationButtons(BuildContext context, bool isAdmin) {
   );
 }
 
+// دالة الرفع المعدلة لاستخدام الخدمة المحدثة
 Future<void> _handleUpload(
   BuildContext context,
   WidgetRef ref,
   FormGroup form,
   List<File> images,
 ) async {
-  final requiredControls = [
-    'head',
-    'headPart1',
-    'headPart2',
-    'name',
-    'mainCategory',
-    'subArea',
-    'id',
-  ];
-  for (var control in requiredControls) {
-    if (!form.contains(control)) {
-      BotToast.showText(text: 'خطأ: الحقل $control غير موجود في الـ Provider');
-      return;
-    }
-  }
-
+  // التحقق من الحقول الأساسية
   final String mainTitle = form.control('head').value?.toString().trim() ?? "";
   final String fromPart =
       form.control('headPart1').value?.toString().trim() ?? "";
   final String toPart =
       form.control('headPart2').value?.toString().trim() ?? "";
 
-  if (mainTitle.isEmpty || fromPart.isEmpty || toPart.isEmpty) {
-    BotToast.showText(
-      text: 'يرجى ملء جميع حقول العنوان (العنوان، من، إلى)'.i18n,
-    );
+  if (mainTitle.isEmpty ||
+      fromPart.isEmpty ||
+      toPart.isEmpty ||
+      images.isEmpty) {
+    BotToast.showText(text: 'يرجى إكمال البيانات والتقاط الصور'.i18n);
     return;
   }
 
   final String combinedFullTitle = "$mainTitle ($fromPart - $toPart)";
 
-  if (images.isEmpty) {
-    BotToast.showText(text: 'يرجى التقاط صورة واحدة على الأقل'.i18n);
-    return;
-  }
-
-  if (form.control('name').value == null) {
-    BotToast.showText(text: 'يرجى اختيار الموظف المسؤول'.i18n);
-    return;
-  }
-
-  if (form.control('mainCategory').value == null ||
-      form.control('subArea').value == null) {
-    BotToast.showText(text: 'يرجى اختيار التصنيف والمنطقة'.i18n);
-    return;
-  }
-
   try {
-    BotToast.showLoading();
-
     String mainLabel = form.control('mainCategory').value == 'city'
         ? "حمص - المدينة"
         : "ريف حمص";
 
+    // استدعاء دالة الرفع من الخدمة (التي ستقوم بتحديث النسبة المئوية تلقائياً)
     await ref
         .read(photosServicesProvider)
-        .generateAndUploadPdfFromFiles(
+        .uploadImagesAsList(
           imageFiles: images,
           region: mainLabel,
           subArea: form.control('subArea').value,
@@ -512,15 +526,11 @@ Future<void> _handleUpload(
           id: form.control('id').value.toString(),
         );
 
-    debugPrint("Final Combined Title: $combinedFullTitle");
-    BotToast.showText(text: 'تم إنشاء ورفع ملف PDF بنجاح'.i18n);
-
+    // تصفير الواجهة بعد النجاح
     ref.read(selectedImagesListProvider.notifier).state = [];
     form.reset();
   } catch (e) {
     debugPrint("Upload Error: $e");
-    BotToast.showText(text: 'حدث خطأ أثناء الرفع: $e');
-  } finally {
-    BotToast.closeAllLoading();
+    // الخطأ يتم معالجته داخل الخدمة عبر BotToast، ولكن يمكن إضافة معالجة هنا إذا أردتِ
   }
 }
