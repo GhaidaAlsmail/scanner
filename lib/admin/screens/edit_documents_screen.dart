@@ -23,6 +23,8 @@ class EditDocumentScreen extends ConsumerStatefulWidget {
 class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
   List<File> _pagesAsImages = [];
   bool _isExtracting = true;
+  int _currentPage = 0;
+  int _totalPages = 0;
 
   // 1. تعريف المتحكم
   late TextEditingController _titleController;
@@ -44,7 +46,10 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
 
   Future<void> _convertPdfToImages() async {
     try {
-      setState(() => _isExtracting = true);
+      setState(() {
+        _isExtracting = true;
+        _currentPage = 0;
+      });
 
       String baseUrl = await getDynamicBaseUrl();
       baseUrl = baseUrl.replaceAll('/api', '');
@@ -73,16 +78,19 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
 
       // 5. تفكيك الملف باستخدام pdfr
       final document = await pdfr.PdfDocument.openData(response.bodyBytes);
+      setState(() {
+        _totalPages = document.pagesCount; // تحديد إجمالي عدد الصفحات
+      });
       final tempDir = await getTemporaryDirectory();
       List<File> tempFiles = [];
-
       for (int i = 1; i <= document.pagesCount; i++) {
         final page = await document.getPage(i);
+
         final pageRender = await page.render(
-          width: page.width * 3, // دقة عالية
-          height: page.height * 3,
+          width: page.width * 2,
+          height: page.height * 2,
           format: pdfr.PdfPageImageFormat.jpeg,
-          quality: 100,
+          quality: 90,
         );
 
         if (pageRender != null) {
@@ -92,8 +100,32 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
           await file.writeAsBytes(pageRender.bytes);
           tempFiles.add(file);
         }
+
         await page.close();
+
+        // إضافة استراحة قصيرة كل 10 صفحات للسماح للنظام بتنظيف الذاكرة أثناء التفكيك
+        if (i % 10 == 0) {
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
       }
+      // for (int i = 1; i <= document.pagesCount; i++) {
+      //   final page = await document.getPage(i);
+      //   final pageRender = await page.render(
+      //     width: page.width * 3, // دقة عالية
+      //     height: page.height * 3,
+      //     format: pdfr.PdfPageImageFormat.jpeg,
+      //     quality: 100,
+      //   );
+
+      //   if (pageRender != null) {
+      //     final file = File(
+      //       '${tempDir.path}/page_${DateTime.now().microsecondsSinceEpoch}_$i.jpg',
+      //     );
+      //     await file.writeAsBytes(pageRender.bytes);
+      //     tempFiles.add(file);
+      //   }
+      //   await page.close();
+      // }
 
       setState(() {
         _pagesAsImages = tempFiles;
@@ -114,7 +146,6 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
       return;
     }
 
-    // التحقق من أن الاسم ليس فارغاً
     if (_titleController.text.trim().isEmpty) {
       BotToast.showText(text: "يرجى إدخال اسم للمستند");
       return;
@@ -123,8 +154,16 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
     try {
       BotToast.showLoading();
       final pdf = pw.Document();
-      for (var imageFile in _pagesAsImages) {
-        final image = pw.MemoryImage(imageFile.readAsBytesSync());
+
+      // معالجة الصور واحدة تلو الأخرى لمنع انفجار الرام
+      for (int i = 0; i < _pagesAsImages.length; i++) {
+        final imageFile = _pagesAsImages[i];
+
+        // 1. قراءة الملف بشكل مباشر (Stream-like)
+        final imageBytes = await imageFile.readAsBytes();
+        final image = pw.MemoryImage(imageBytes);
+
+        // 2. إضافة الصفحة للـ PDF
         pdf.addPage(
           pw.Page(
             pageFormat: pdf_info.PdfPageFormat.a4,
@@ -134,15 +173,22 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
             ),
           ),
         );
+
+        // 3. تحرير الذاكرة: ننتظر قليلاً كل 5 صور ليعيد النظام تنظيم الرام
+        if (i % 5 == 0) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
       }
 
       final tempDir = await getTemporaryDirectory();
       final file = File(
         "${tempDir.path}/updated_doc_${DateTime.now().millisecondsSinceEpoch}.pdf",
       );
+
+      // حفظ الملف النهائي
       await file.writeAsBytes(await pdf.save());
 
-      // 4. إرسال الاسم الجديد (newTitle) من الـ Controller
+      // الرفع للسيرفر
       await ref
           .read(photosServicesProvider)
           .updateDocumentFile(
@@ -152,15 +198,69 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
             newFile: file,
             newTitle: _titleController.text.trim(),
           );
-      // ref.invalidate(photosServicesProvider);
+
       BotToast.closeAllLoading();
       BotToast.showText(text: "تم تحديث المستند والاسم بنجاح");
       Navigator.pop(context);
     } catch (e) {
       BotToast.closeAllLoading();
+      debugPrint("Save Error: $e");
       BotToast.showText(text: "فشل الحفظ: $e");
     }
   }
+  // Future<void> _saveNewPdf() async {
+  //   if (_pagesAsImages.isEmpty) {
+  //     BotToast.showText(text: "لا يمكن حفظ مستند فارغ");
+  //     return;
+  //   }
+
+  //   // التحقق من أن الاسم ليس فارغاً
+  //   if (_titleController.text.trim().isEmpty) {
+  //     BotToast.showText(text: "يرجى إدخال اسم للمستند");
+  //     return;
+  //   }
+
+  //   try {
+  //     BotToast.showLoading();
+  //     final pdf = pw.Document();
+  //     for (var imageFile in _pagesAsImages) {
+  //       final image = pw.MemoryImage(imageFile.readAsBytesSync());
+  //       pdf.addPage(
+  //         pw.Page(
+  //           pageFormat: pdf_info.PdfPageFormat.a4,
+  //           build: (pw.Context context) => pw.FullPage(
+  //             ignoreMargins: true,
+  //             child: pw.Image(image, fit: pw.BoxFit.contain),
+  //           ),
+  //         ),
+  //       );
+  //     }
+
+  //     final tempDir = await getTemporaryDirectory();
+  //     final file = File(
+  //       "${tempDir.path}/updated_doc_${DateTime.now().millisecondsSinceEpoch}.pdf",
+  //     );
+  //     await file.writeAsBytes(await pdf.save());
+
+  //     // 4. إرسال الاسم الجديد (newTitle) من الـ Controller
+  //     await ref
+  //         .read(photosServicesProvider)
+  //         .updateDocumentFile(
+  //           docId: widget.doc['_id'],
+  //           region: widget.doc['region'],
+  //           subArea: widget.doc['subArea'],
+  //           newFile: file,
+  //           newTitle: _titleController.text.trim(),
+  //         );
+  //     // ref.invalidate(photosServicesProvider);
+  //     BotToast.closeAllLoading();
+  //     BotToast.showText(text: "تم تحديث المستند والاسم بنجاح");
+  //     Navigator.pop(context);
+  //   } catch (e) {
+  //     BotToast.closeAllLoading();
+  //     BotToast.showText(text: "فشل الحفظ: $e");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +275,25 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
         ],
       ),
       body: _isExtracting
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  Text(
+                    "جاري تفكيك صفحات المستند...",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 10),
+                  // إظهار الرقم الحالي من الإجمالي
+                  Text(
+                    "صفحة $_currentPage من $_totalPages",
+                    style: TextStyle(color: Colors.blue, fontSize: 18),
+                  ),
+                ],
+              ),
+            )
           : Column(
               children: [
                 // 5. حقل إدخال الاسم الجديد
@@ -249,7 +367,11 @@ class _EditDocumentScreenState extends ConsumerState<EditDocumentScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.file(_pagesAsImages[index], fit: BoxFit.cover),
+          child: Image.file(
+            _pagesAsImages[index],
+            fit: BoxFit.cover,
+            cacheWidth: 400,
+          ),
         ),
         // زر الحذف
         Positioned(

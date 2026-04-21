@@ -44,7 +44,7 @@ class ReactivePasswordInputWidget extends ConsumerWidget {
       validationMessages:
           validationMessages ??
           {
-            "required": (o) => "Required".i18n,
+            "required": (o) => "الحقل مطلوب".i18n,
             "email": (o) => "Email is not valid".i18n,
             "minLength": (o) => "Too short".i18n,
           },
